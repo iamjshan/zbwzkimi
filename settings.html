@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>标准物质管理助手 - 设置</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#64748b',
+                        success: '#22c55e',
+                        danger: '#ef4444',
+                        warning: '#f59e0b',
+                        info: '#0ea5e9',
+                        light: '#f8fafc',
+                        dark: '#1e293b'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .transition-all-300 {
+                transition: all 300ms ease-in-out;
+            }
+        }
+    </style>
+    <style>
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: #f1f5f9;
+        }
+        .header {
+            background-color: #3b82f6;
+            color: white;
+            padding: 1rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+        .content {
+            margin-top: 4.5rem;
+            padding: 1rem;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem;
+            color: #64748b;
+            transition: all 0.3s ease;
+        }
+        .nav-item.active {
+            color: #3b82f6;
+        }
+        .nav-item i {
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
+        }
+        .nav-item span {
+            font-size: 0.75rem;
+        }
+        .footer {
+            background-color: white;
+            border-top: 1px solid #e2e8f0;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+        .setting-item {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- 头部 -->
+    <div class="header flex items-center justify-between">
+        <div class="flex items-center">
+            <button onclick="navigateTo('dashboard.html')" class="mr-4">
+                <i class="fa fa-arrow-left text-xl"></i>
+            </button>
+            <h1 class="text-xl font-bold">设置</h1>
+        </div>
+    </div>
+
+    <!-- 内容区 -->
+    <div class="content pb-20">
+        <!-- 个人信息 -->
+        <div class="card mb-4">
+            <div class="flex items-center">
+                <div class="bg-primary text-white rounded-full w-16 h-16 flex items-center justify-center text-2xl font-bold mr-4">
+                    <span id="userInitial">管</span>
+                </div>
+                <div>
+                    <h2 class="text-lg font-semibold" id="userName">管理员</h2>
+                    <p class="text-sm text-gray-500" id="userRole">系统管理员</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 设置项 -->
+        <div class="card">
+            <div class="setting-item" onclick="showChangePasswordModal()">
+                <div class="flex items-center">
+                    <i class="fa fa-lock text-primary mr-3"></i>
+                    <span>修改密码</span>
+                </div>
+                <i class="fa fa-chevron-right text-gray-400"></i>
+            </div>
+            <div class="setting-item" onclick="clearData()">
+                <div class="flex items-center">
+                    <i class="fa fa-trash text-danger mr-3"></i>
+                    <span>清空数据</span>
+                </div>
+                <i class="fa fa-chevron-right text-gray-400"></i>
+            </div>
+            <div class="setting-item" onclick="showExportModal()">
+                <div class="flex items-center">
+                    <i class="fa fa-download text-success mr-3"></i>
+                    <span>数据导出</span>
+                </div>
+                <i class="fa fa-chevron-right text-gray-400"></i>
+            </div>
+            <div class="setting-item">
+                <div class="flex items-center">
+                    <i class="fa fa-info-circle text-info mr-3"></i>
+                    <span>关于系统</span>
+                </div>
+                <div>
+                    <span class="text-sm text-gray-500">v1.0.0</span>
+                    <i class="fa fa-chevron-right text-gray-400 ml-2"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- 退出登录 -->
+        <button id="logoutBtn" class="w-full bg-white text-danger font-semibold py-3 rounded-lg mt-6">
+            退出登录
+        </button>
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="footer">
+        <div class="flex justify-around">
+            <div class="nav-item" onclick="navigateTo('dashboard.html')">
+                <i class="fa fa-home"></i>
+                <span>首页</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('stock.html')">
+                <i class="fa fa-cubes"></i>
+                <span>库存</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('personnel.html')">
+                <i class="fa fa-users"></i>
+                <span>人员</span>
+            </div>
+            <div class="nav-item active" onclick="navigateTo('settings.html')">
+                <i class="fa fa-cog"></i>
+                <span>设置</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改密码模态框 -->
+    <div id="changePasswordModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg w-full max-w-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">修改密码</h2>
+                <button onclick="hideChangePasswordModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <form id="changePasswordForm" class="space-y-4">
+                <div>
+                    <label for="currentPassword" class="block text-sm font-medium text-gray-700 mb-1">当前密码</label>
+                    <input type="password" id="currentPassword" name="currentPassword" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                </div>
+                <div>
+                    <label for="newPassword" class="block text-sm font-medium text-gray-700 mb-1">新密码</label>
+                    <input type="password" id="newPassword" name="newPassword" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                </div>
+                <div>
+                    <label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-1">确认新密码</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="hideChangePasswordModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100">取消</button>
+                    <button type="submit" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-blue-600">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 数据导出模态框 -->
+    <div id="exportModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg w-full max-w-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">数据导出</h2>
+                <button onclick="hideExportModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <h3 class="text-lg font-semibold mb-3">选择导出数据类型</h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="exportStock" class="mr-2" checked>
+                            <span>库存数据</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="exportRecords" class="mr-2" checked>
+                            <span>操作记录</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="exportMessages" class="mr-2" checked>
+                            <span>消息记录</span>
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-3">导出格式</h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="radio" name="exportFormat" value="excel" class="mr-2" checked>
+                            <span>Excel表格</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="exportFormat" value="csv" class="mr-2">
+                            <span>CSV文件</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="hideExportModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100">取消</button>
+                    <button type="button" onclick="exportData()" class="px-4 py-2 bg-success text-white rounded-md hover:bg-green-600">导出</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 检查登录状态
+        document.addEventListener('DOMContentLoaded', function() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            const username = localStorage.getItem('username');
+            
+            if (!isLoggedIn) {
+                window.location.href = 'index.html';
+            }
+            
+            // 获取当前用户信息
+            const personnelData = JSON.parse(localStorage.getItem('personnelData') || '[]');
+            const currentUser = personnelData.find(user => user.username === username) || { name: '管理员', role: 'admin' };
+            
+            // 更新用户信息显示
+            document.getElementById('userName').textContent = currentUser.name;
+            document.getElementById('userRole').textContent = currentUser.role === 'admin' ? '系统管理员' : '普通用户';
+            document.getElementById('userInitial').textContent = currentUser.name.charAt(0);
+            
+            // 退出登录按钮点击事件
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                if (confirm('确定要退出登录吗？')) {
+                    logout();
+                }
+            });
+            
+            // 修改密码表单提交事件
+            document.getElementById('changePasswordForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const currentPassword = document.getElementById('currentPassword').value;
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                
+                // 验证当前密码
+                if (currentPassword !== currentUser.password) {
+                    alert('当前密码错误！');
+                    return;
+                }
+                
+                // 验证新密码
+                if (newPassword !== confirmPassword) {
+                    alert('两次输入的新密码不一致！');
+                    return;
+                }
+                
+                // 更新密码
+                currentUser.password = newPassword;
+                
+                // 保存人员数据
+                const index = personnelData.findIndex(user => user.username === username);
+                if (index !== -1) {
+                    personnelData[index] = currentUser;
+                    localStorage.setItem('personnelData', JSON.stringify(personnelData));
+                }
+                
+                // 隐藏模态框
+                hideChangePasswordModal();
+                
+                // 显示成功提示
+                alert('密码修改成功！');
+            });
+        });
+        
+        // 退出登录
+        function logout() {
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('username');
+            window.location.href = 'index.html';
+        }
+        
+        // 显示修改密码模态框
+        function showChangePasswordModal() {
+            document.getElementById('changePasswordModal').classList.remove('hidden');
+        }
+        
+        // 隐藏修改密码模态框
+        function hideChangePasswordModal() {
+            document.getElementById('changePasswordModal').classList.add('hidden');
+            document.getElementById('changePasswordForm').reset();
+        }
+        
+        // 清空数据
+        function clearData() {
+            if (confirm('确定要清空所有数据吗？此操作不可恢复！')) {
+                localStorage.removeItem('stockData');
+                localStorage.removeItem('recordData');
+                alert('所有库存、活动记录和流转记录已清空！');
+                // 刷新当前页面，确保显示空数据
+                window.location.reload();
+            }
+        }
+        
+        // 导航函数
+        function navigateTo(page) {
+            window.location.href = page;
+        }
+        
+        // 显示数据导出模态框
+        function showExportModal() {
+            document.getElementById('exportModal').classList.remove('hidden');
+        }
+        
+        // 隐藏数据导出模态框
+        function hideExportModal() {
+            document.getElementById('exportModal').classList.add('hidden');
+        }
+        
+        // 执行数据导出
+        function exportData() {
+            const exportStock = document.getElementById('exportStock').checked;
+            const exportRecords = document.getElementById('exportRecords').checked;
+            const exportMessages = document.getElementById('exportMessages').checked;
+            const exportFormat = document.querySelector('input[name="exportFormat"]:checked').value;
+            
+            if (!exportStock && !exportRecords && !exportMessages) {
+                alert('请至少选择一种数据类型进行导出');
+                return;
+            }
+            
+            let exportContent = '';
+            let fileName = `标准物质管理系统数据_${new Date().toISOString().slice(0, 10)}`;
+            
+            if (exportFormat === 'excel') {
+                fileName += '.xls';
+                // 添加Excel特定的头部
+                exportContent += '<html xmlns:x="urn:schemas-microsoft-com:office:excel">';
+                exportContent += '<head><meta charset="UTF-8"><style>table {border-collapse: collapse;} th, td {border: 1px solid black; padding: 8px;}</style></head>';
+                exportContent += '<body>';
+            } else {
+                fileName += '.csv';
+            }
+            
+            // 导出库存数据
+            if (exportStock) {
+                const stockData = JSON.parse(localStorage.getItem('stockData') || '[]');
+                if (stockData.length > 0) {
+                    if (exportFormat === 'excel') {
+                        exportContent += '<h2>库存数据</h2>';
+                        exportContent += '<table>';
+                        exportContent += '<tr><th>标准物质名称</th><th>标准物质编号</th><th>批次号</th><th>唯一性标识</th><th>生产厂家</th><th>浓度</th><th>不确定度</th><th>稀释条件</th><th>数量</th><th>有效期</th><th>状态</th></tr>';
+                        stockData.forEach(item => {
+                            exportContent += `<tr>
+                                <td>${item.name || ''}</td>
+                                <td>${item.code || ''}</td>
+                                <td>${item.batchNumber || ''}</td>
+                                <td>${item.uniqueId || ''}</td>
+                                <td>${item.manufacturer || ''}</td>
+                                <td>${item.concentration || ''}</td>
+                                <td>${item.uncertainty || ''}</td>
+                                <td>${item.storageCondition || ''}</td>
+                                <td>${item.quantity || 0}</td>
+                                <td>${item.expiryDate || ''}</td>
+                                <td>${getStatusText(item.status)}</td>
+                            </tr>`;
+                        });
+                        exportContent += '</table><br>';
+                    } else {
+                        exportContent += '库存数据\n';
+                        exportContent += '标准物质名称,标准物质编号,批次号,唯一性标识,生产厂家,浓度,不确定度,稀释条件,数量,有效期,状态\n';
+                        stockData.forEach(item => {
+                            exportContent += `${escapeCSV(item.name || '')},${escapeCSV(item.code || '')},${escapeCSV(item.batchNumber || '')},${escapeCSV(item.uniqueId || '')},${escapeCSV(item.manufacturer || '')},${escapeCSV(item.concentration || '')},${escapeCSV(item.uncertainty || '')},${escapeCSV(item.storageCondition || '')},${item.quantity || 0},${item.expiryDate || ''},${escapeCSV(getStatusText(item.status))}\n`;
+                        });
+                        exportContent += '\n';
+                    }
+                }
+            }
+            
+            // 导出操作记录
+            if (exportRecords) {
+                const recordData = JSON.parse(localStorage.getItem('recordData') || '[]');
+                if (recordData.length > 0) {
+                    if (exportFormat === 'excel') {
+                        exportContent += '<h2>操作记录</h2>';
+                        exportContent += '<table>';
+                        exportContent += '<tr><th>操作类型</th><th>标准物质名称</th><th>数量</th><th>操作人员</th><th>操作时间</th><th>备注</th></tr>';
+                        recordData.forEach(record => {
+                            exportContent += `<tr>
+                                <td>${record.type === 'in' ? '入库' : '出库'}</td>
+                                <td>${record.materialName || ''}</td>
+                                <td>${record.quantity || 0}</td>
+                                <td>${record.operator || ''}</td>
+                                <td>${record.date || ''}</td>
+                                <td>${record.note || ''}</td>
+                            </tr>`;
+                        });
+                        exportContent += '</table><br>';
+                    } else {
+                        exportContent += '操作记录\n';
+                        exportContent += '操作类型,标准物质名称,数量,操作人员,操作时间,备注\n';
+                        recordData.forEach(record => {
+                            exportContent += `${escapeCSV(record.type === 'in' ? '入库' : '出库')},${escapeCSV(record.materialName || '')},${record.quantity || 0},${escapeCSV(record.operator || '')},${escapeCSV(record.date || '')},${escapeCSV(record.note || '')}\n`;
+                        });
+                        exportContent += '\n';
+                    }
+                }
+            }
+            
+            // 导出消息记录
+            if (exportMessages) {
+                const messages = JSON.parse(localStorage.getItem('messages') || '[]');
+                if (messages.length > 0) {
+                    if (exportFormat === 'excel') {
+                        exportContent += '<h2>消息记录</h2>';
+                        exportContent += '<table>';
+                        exportContent += '<tr><th>发送者</th><th>接收者</th><th>主题</th><th>内容</th><th>发送时间</th></tr>';
+                        messages.forEach(message => {
+                            exportContent += `<tr>
+                                <td>${message.sender || ''}</td>
+                                <td>${message.recipient === 'all' ? '所有人' : message.recipient || ''}</td>
+                                <td>${message.subject || ''}</td>
+                                <td>${message.content || ''}</td>
+                                <td>${message.date || ''}</td>
+                            </tr>`;
+                        });
+                        exportContent += '</table>';
+                    } else {
+                        exportContent += '消息记录\n';
+                        exportContent += '发送者,接收者,主题,内容,发送时间\n';
+                        messages.forEach(message => {
+                            exportContent += `${escapeCSV(message.sender || '')},${escapeCSV(message.recipient === 'all' ? '所有人' : message.recipient || '')},${escapeCSV(message.subject || '')},${escapeCSV(message.content || '')},${escapeCSV(message.date || '')}\n`;
+                        });
+                    }
+                }
+            }
+            
+            if (exportFormat === 'excel') {
+                exportContent += '</body></html>';
+            }
+            
+            // 创建并下载文件
+            downloadFile(exportContent, fileName, exportFormat === 'excel' ? 'application/vnd.ms-excel' : 'text/csv');
+            
+            // 隐藏模态框
+            hideExportModal();
+            // 显示成功提示
+            alert('数据导出成功！');
+        }
+        
+        // 获取状态文本
+        function getStatusText(status) {
+            switch (status) {
+                case 'normal': return '正常';
+                case 'warning': return '即将过期';
+                case 'expired': return '已过期';
+                case 'low': return '库存不足';
+                default: return '';
+            }
+        }
+        
+        // 转义CSV内容
+        function escapeCSV(value) {
+            if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                return '"' + value.replace(/"/g, '""') + '"';
+            }
+            return value;
+        }
+        
+        // 下载文件
+        function downloadFile(content, fileName, contentType) {
+            const blob = new Blob([content], { type: contentType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+        }
+    </script>
+</body>
+</html>

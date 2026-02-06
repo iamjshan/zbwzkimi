@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>标准物质管理助手 - 人员管理</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#64748b',
+                        success: '#22c55e',
+                        danger: '#ef4444',
+                        warning: '#f59e0b',
+                        info: '#0ea5e9',
+                        light: '#f8fafc',
+                        dark: '#1e293b'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .transition-all-300 {
+                transition: all 300ms ease-in-out;
+            }
+        }
+    </style>
+    <style>
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: #f1f5f9;
+        }
+        .header {
+            background-color: #3b82f6;
+            color: white;
+            padding: 1rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+        .content {
+            margin-top: 4.5rem;
+            padding: 1rem;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem;
+            color: #64748b;
+            transition: all 0.3s ease;
+        }
+        .nav-item.active {
+            color: #3b82f6;
+        }
+        .nav-item i {
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
+        }
+        .nav-item span {
+            font-size: 0.75rem;
+        }
+        .footer {
+            background-color: white;
+            border-top: 1px solid #e2e8f0;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+        .personnel-item {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 0;
+        }
+        .personnel-item:last-child {
+            border-bottom: none;
+        }
+        .role-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .role-admin {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        .role-user {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- 头部 -->
+    <div class="header flex items-center justify-between">
+        <div class="flex items-center">
+            <button onclick="navigateTo('dashboard.html')" class="mr-4">
+                <i class="fa fa-arrow-left text-xl"></i>
+            </button>
+            <h1 class="text-xl font-bold">人员管理</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+            <button id="searchBtn">
+                <i class="fa fa-search text-xl"></i>
+            </button>
+            <button id="addBtn" onclick="showAddModal()">
+                <i class="fa fa-plus text-xl"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- 内容区 -->
+    <div class="content pb-20">
+        <!-- 搜索栏 -->
+        <div class="card mb-4">
+            <div class="relative">
+                <input type="text" id="searchInput" placeholder="搜索人员..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                <i class="fa fa-search absolute left-3 top-3 text-gray-400"></i>
+            </div>
+        </div>
+
+        <!-- 人员列表 -->
+        <div id="personnelList" class="card">
+            <!-- 人员项将通过JavaScript动态生成 -->
+        </div>
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="footer">
+        <div class="flex justify-around">
+            <div class="nav-item" onclick="navigateTo('dashboard.html')">
+                <i class="fa fa-home"></i>
+                <span>首页</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('stock.html')">
+                <i class="fa fa-cubes"></i>
+                <span>库存</span>
+            </div>
+            <div class="nav-item active" onclick="navigateTo('personnel.html')">
+                <i class="fa fa-users"></i>
+                <span>人员</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('settings.html')">
+                <i class="fa fa-cog"></i>
+                <span>设置</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加人员模态框 -->
+    <div id="addModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg w-full max-w-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">添加人员</h2>
+                <button onclick="hideAddModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <form id="addForm" class="space-y-4">
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">姓名</label>
+                    <input type="text" id="name" name="name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                </div>
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700 mb-1">用户名</label>
+                    <input type="text" id="username" name="username" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">密码</label>
+                    <input type="password" id="password" name="password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                </div>
+                <div>
+                    <label for="role" class="block text-sm font-medium text-gray-700 mb-1">角色</label>
+                    <select id="role" name="role" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                        <option value="admin">管理员</option>
+                        <option value="user">普通用户</option>
+                    </select>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="hideAddModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100">取消</button>
+                    <button type="submit" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-blue-600">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 检查登录状态
+        document.addEventListener('DOMContentLoaded', function() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            
+            if (!isLoggedIn) {
+                window.location.href = 'index.html';
+            }
+            
+            // 初始化人员数据
+            initPersonnelData();
+            
+            // 渲染人员列表
+            renderPersonnelList();
+            
+            // 搜索功能
+            document.getElementById('searchInput').addEventListener('input', function() {
+                renderPersonnelList();
+            });
+        });
+        
+        // 模拟人员数据
+        let personnelData = [];
+        
+        // 初始化人员数据
+        function initPersonnelData() {
+            // 从localStorage获取人员数据，如果没有则使用默认数据
+            const savedPersonnelData = localStorage.getItem('personnelData');
+            if (savedPersonnelData) {
+                personnelData = JSON.parse(savedPersonnelData);
+            } else {
+                personnelData = [
+                    { id: 1, name: '张三', username: 'admin', password: 'admin123', role: 'admin' },
+                    { id: 2, name: '李四', username: 'user1', password: 'user123', role: 'user' },
+                    { id: 3, name: '王五', username: 'user2', password: 'user123', role: 'user' }
+                ];
+                savePersonnelData();
+            }
+        }
+        
+        // 保存人员数据到localStorage
+        function savePersonnelData() {
+            localStorage.setItem('personnelData', JSON.stringify(personnelData));
+        }
+        
+        // 渲染人员列表
+        function renderPersonnelList() {
+            const personnelListElement = document.getElementById('personnelList');
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            
+            // 过滤人员数据
+            let filteredData = personnelData;
+            
+            // 根据搜索输入过滤
+            if (searchInput) {
+                filteredData = filteredData.filter(item => 
+                    item.name.toLowerCase().includes(searchInput) || 
+                    item.username.toLowerCase().includes(searchInput)
+                );
+            }
+            
+            // 渲染人员列表
+            if (filteredData.length === 0) {
+                personnelListElement.innerHTML = '<p class="text-center text-gray-500 py-4">暂无数据</p>';
+                return;
+            }
+            
+            personnelListElement.innerHTML = filteredData.map(item => {
+                const roleText = item.role === 'admin' ? '管理员' : '普通用户';
+                const roleClass = item.role === 'admin' ? 'role-admin' : 'role-user';
+                
+                return `
+                    <div class="personnel-item">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-semibold">${item.name}</h3>
+                                <p class="text-sm text-gray-500">用户名: ${item.username}</p>
+                            </div>
+                            <span class="role-badge ${roleClass}">${roleText}</span>
+                        </div>
+                        <div class="flex justify-end space-x-2 mt-3">
+                            <button onclick="editPersonnelItem(${item.id})" class="text-primary text-sm">
+                                <i class="fa fa-pencil"></i> 编辑
+                            </button>
+                            <button onclick="deletePersonnelItem(${item.id})" class="text-danger text-sm">
+                                <i class="fa fa-trash"></i> 删除
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // 显示添加人员模态框
+        function showAddModal() {
+            document.getElementById('addModal').classList.remove('hidden');
+        }
+        
+        // 隐藏添加人员模态框
+        function hideAddModal() {
+            document.getElementById('addModal').classList.add('hidden');
+            document.getElementById('addForm').reset();
+        }
+        
+        // 添加人员表单提交
+        document.getElementById('addForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // 获取表单数据
+            const name = document.getElementById('name').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('role').value;
+            
+            // 检查用户名是否已存在
+            if (personnelData.some(item => item.username === username)) {
+                alert('用户名已存在，请使用其他用户名！');
+                return;
+            }
+            
+            // 创建新的人员
+            const newItem = {
+                id: Date.now(),
+                name,
+                username,
+                password,
+                role
+            };
+            
+            // 添加到人员数据
+            personnelData.push(newItem);
+            
+            // 保存人员数据
+            savePersonnelData();
+            
+            // 重新渲染人员列表
+            renderPersonnelList();
+            
+            // 隐藏模态框
+            hideAddModal();
+            
+            // 显示成功提示
+            alert('人员添加成功！');
+        });
+        
+        // 编辑人员
+        function editPersonnelItem(id) {
+            // 查找要编辑的人员
+            const item = personnelData.find(item => item.id === id);
+            if (!item) return;
+            
+            // 填充表单数据
+            document.getElementById('name').value = item.name;
+            document.getElementById('username').value = item.username;
+            document.getElementById('password').value = item.password;
+            document.getElementById('role').value = item.role;
+            
+            // 修改表单提交事件
+            const originalSubmitHandler = document.getElementById('addForm').onsubmit;
+            document.getElementById('addForm').onsubmit = function(e) {
+                e.preventDefault();
+                
+                // 更新人员信息
+                const originalUsername = item.username;
+                item.name = document.getElementById('name').value;
+                item.username = document.getElementById('username').value;
+                item.password = document.getElementById('password').value;
+                item.role = document.getElementById('role').value;
+                
+                // 检查用户名是否已存在（排除当前用户）
+                if (originalUsername !== item.username && personnelData.some(p => p.username === item.username)) {
+                    alert('用户名已存在，请使用其他用户名！');
+                    return;
+                }
+                
+                // 保存人员数据
+                savePersonnelData();
+                
+                // 重新渲染人员列表
+                renderPersonnelList();
+                
+                // 隐藏模态框
+                hideAddModal();
+                
+                // 恢复原始表单提交事件
+                document.getElementById('addForm').onsubmit = originalSubmitHandler;
+                
+                // 显示成功提示
+                alert('人员信息更新成功！');
+            };
+            
+            // 显示模态框
+            document.getElementById('addModal').classList.remove('hidden');
+        }
+        
+        // 删除人员
+        function deletePersonnelItem(id) {
+            // 不允许删除当前登录用户
+            const currentUsername = localStorage.getItem('username');
+            const itemToDelete = personnelData.find(item => item.id === id);
+            
+            if (itemToDelete && itemToDelete.username === currentUsername) {
+                alert('不能删除当前登录的用户！');
+                return;
+            }
+            
+            if (confirm('确定要删除这个人员吗？')) {
+                // 从人员数据中删除
+                personnelData = personnelData.filter(item => item.id !== id);
+                
+                // 保存人员数据
+                savePersonnelData();
+                
+                // 重新渲染人员列表
+                renderPersonnelList();
+                
+                // 显示成功提示
+                alert('人员删除成功！');
+            }
+        }
+        
+        // 导航函数
+        function navigateTo(page) {
+            window.location.href = page;
+        }
+    </script>
+</body>
+</html>

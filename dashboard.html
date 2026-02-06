@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>标准物质管理助手 - 首页</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <!-- QRCode.js for scanning QR codes -->
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#64748b',
+                        success: '#22c55e',
+                        danger: '#ef4444',
+                        warning: '#f59e0b',
+                        info: '#0ea5e9',
+                        light: '#f8fafc',
+                        dark: '#1e293b'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .transition-all-300 {
+                transition: all 300ms ease-in-out;
+            }
+        }
+    </style>
+    <style>
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: #f1f5f9;
+        }
+        .header {
+            background-color: #3b82f6;
+            color: white;
+            padding: 1rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+        .content {
+            margin-top: 4.5rem;
+            padding: 1rem;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .stat-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .quick-action-btn {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        .quick-action-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem;
+            color: #64748b;
+            transition: all 0.3s ease;
+        }
+        .nav-item.active {
+            color: #3b82f6;
+        }
+        .nav-item i {
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
+        }
+        .nav-item span {
+            font-size: 0.75rem;
+        }
+        .footer {
+            background-color: white;
+            border-top: 1px solid #e2e8f0;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+        .notification-tab.active {
+            border-bottom: 2px solid #3b82f6;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+        .notification-tab:hover {
+            background-color: #f1f5f9;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- 头部 -->
+    <div class="header flex items-center justify-between">
+        <h1 class="text-xl font-bold">标准物质管理</h1>
+        <div class="flex items-center space-x-4">
+            <button id="scanBtn" class="relative">
+                <i class="fa fa-qrcode text-xl"></i>
+            </button>
+            <button id="notificationBtn" class="relative">
+                <i class="fa fa-bell-o text-xl"></i>
+                <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">2</span>
+            </button>
+            <button id="userBtn" class="flex items-center">
+                <i class="fa fa-user-o text-xl mr-2"></i>
+                <span id="usernameDisplay">管理员</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 内容区 -->
+    <div class="content pb-20">
+        <!-- 统计卡片 -->
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="stat-card">
+                <div>
+                    <p class="text-sm text-gray-500">总库存</p>
+                    <p id="totalStock" class="text-2xl font-bold">0</p>
+                </div>
+                <div class="bg-blue-100 p-3 rounded-full">
+                    <i class="fa fa-cubes text-primary text-xl"></i>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div>
+                    <p class="text-sm text-gray-500">近效期预警</p>
+                    <p id="expiryWarning" class="text-2xl font-bold text-warning">0</p>
+                </div>
+                <div class="bg-yellow-100 p-3 rounded-full">
+                    <i class="fa fa-exclamation-triangle text-warning text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- 库存状态分布 -->
+        <div class="card">
+            <h2 class="text-lg font-semibold mb-4">库存状态分布</h2>
+            <div class="h-64">
+                <canvas id="stockStatusChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 快速操作 -->
+        <div class="card">
+            <h2 class="text-lg font-semibold mb-4">快速操作</h2>
+            <div class="grid grid-cols-4 gap-4">
+                <button class="quick-action-btn" onclick="navigateTo('stock.html?action=add')">
+                    <div class="bg-blue-100 p-3 rounded-full mb-2">
+                        <i class="fa fa-archive text-primary"></i>
+                    </div>
+                    <span class="text-xs">入库</span>
+                </button>
+                <button class="quick-action-btn" onclick="navigateTo('stock.html?action=out')">
+                    <div class="bg-green-100 p-3 rounded-full mb-2">
+                        <i class="fa fa-sign-out text-success"></i>
+                    </div>
+                    <span class="text-xs">出库</span>
+                </button>
+                <button class="quick-action-btn" onclick="navigateTo('stock.html')">
+                    <div class="bg-purple-100 p-3 rounded-full mb-2">
+                        <i class="fa fa-list text-purple-600"></i>
+                    </div>
+                    <span class="text-xs">库存</span>
+                </button>
+                <button class="quick-action-btn" onclick="navigateTo('records.html')">
+                    <div class="bg-gray-100 p-3 rounded-full mb-2">
+                        <i class="fa fa-history text-gray-600"></i>
+                    </div>
+                    <span class="text-xs">记录</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 最近活动 -->
+        <div class="card">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold">最近活动</h2>
+                <a href="records.html" class="text-primary text-sm">查看全部</a>
+            </div>
+            <div id="recentActivities" class="space-y-4">
+                <!-- 最近活动将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 消息管理模态框 -->
+    <div id="notificationModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-hidden">
+            <!-- 模态框头部 -->
+            <div class="bg-primary text-white p-4 flex justify-between items-center">
+                <h2 class="text-xl font-bold">消息管理</h2>
+                <button onclick="hideNotificationModal()" class="text-white hover:text-gray-200">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- 消息选项卡 -->
+            <div class="flex border-b border-gray-200">
+                <div class="flex-1 py-3 px-4 text-center cursor-pointer notification-tab active" data-tab="messages">消息列表</div>
+                <div class="flex-1 py-3 px-4 text-center cursor-pointer notification-tab" data-tab="compose">发送消息</div>
+            </div>
+            
+            <!-- 消息列表内容 -->
+            <div id="messagesContent" class="p-4 max-h-[60vh] overflow-y-auto">
+                <!-- 消息列表将通过JavaScript动态生成 -->
+            </div>
+            
+            <!-- 发送消息内容 -->
+            <div id="composeContent" class="p-4 max-h-[60vh] overflow-y-auto hidden">
+                <form id="composeForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">接收人</label>
+                        <select id="recipient" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                            <option value="all">所有人</option>
+                            <!-- 人员选项将通过JavaScript动态生成 -->
+                        </select>
+                    </div>
+                    <div>
+                        <label for="messageSubject" class="block text-sm font-medium text-gray-700 mb-1">主题</label>
+                        <input type="text" id="messageSubject" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                    <div>
+                        <label for="messageContent" class="block text-sm font-medium text-gray-700 mb-1">消息内容</label>
+                        <textarea id="messageContent" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"></textarea>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="button" onclick="switchNotificationTab('messages')" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 mr-2">取消</button>
+                        <button type="submit" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-blue-600">发送</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 回复消息模态框 -->
+    <div id="replyModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg w-full max-w-md">
+            <div class="bg-primary text-white p-4 flex justify-between items-center">
+                <h2 class="text-lg font-bold">回复消息</h2>
+                <button onclick="hideReplyModal()" class="text-white hover:text-gray-200">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <form id="replyForm" class="p-4 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">回复对象</label>
+                    <input type="text" id="replyRecipient" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" readonly>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">消息内容</label>
+                    <textarea id="replyContent" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"></textarea>
+                </div>
+                <div class="flex justify-end">
+                    <button type="button" onclick="hideReplyModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 mr-2">取消</button>
+                    <button type="submit" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-blue-600">发送回复</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 扫码模态框 -->
+    <div id="scanModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg w-full max-w-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">扫码识别</h2>
+                <button onclick="closeScanModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <div class="mb-4">
+                <div id="scanContainer" class="w-full h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <p class="text-gray-500">点击开始扫码</p>
+                </div>
+            </div>
+            <div class="flex justify-center space-x-3">
+                <button onclick="startScan()" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-blue-600">开始扫码</button>
+                <button onclick="closeScanModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 扫码结果详情模态框 -->
+    <div id="scanResultModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">标准物质详情</h2>
+                <button onclick="closeScanResultModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <div id="scanResultContent" class="space-y-4">
+                <!-- 扫码结果内容将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="footer">
+        <div class="flex justify-around">
+            <div class="nav-item active" onclick="navigateTo('dashboard.html')">
+                <i class="fa fa-home"></i>
+                <span>首页</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('stock.html')">
+                <i class="fa fa-cubes"></i>
+                <span>库存</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('personnel.html')">
+                <i class="fa fa-users"></i>
+                <span>人员</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('settings.html')">
+                <i class="fa fa-cog"></i>
+                <span>设置</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局图表变量
+        let stockStatusChart;
+        
+        // 检查登录状态
+        document.addEventListener('DOMContentLoaded', function() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            const username = localStorage.getItem('username');
+            
+            if (!isLoggedIn) {
+                window.location.href = 'index.html';
+            }
+            
+            if (username) {
+                // 从人员数据中查找用户的真实姓名
+                const personnelData = JSON.parse(localStorage.getItem('personnelData')) || [];
+                const currentUser = personnelData.find(user => user.username === username);
+                if (currentUser && currentUser.name) {
+                    document.getElementById('usernameDisplay').textContent = currentUser.name;
+                } else {
+                    document.getElementById('usernameDisplay').textContent = username;
+                }
+            }
+            
+            // 初始化库存状态分布图表
+            const ctx = document.getElementById('stockStatusChart').getContext('2d');
+            stockStatusChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['正常', '即将过期', '已过期', '库存不足'],
+                    datasets: [{
+                        data: [0, 0, 0, 0],
+                        backgroundColor: [
+                            '#22c55e',
+                            '#f59e0b',
+                            '#ef4444',
+                            '#3b82f6'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+            
+            // 加载库存数据并更新统计
+            loadStockData();
+            
+            // 加载最近活动
+            loadRecentActivities();
+        });
+        
+        // 加载库存数据并更新统计
+        function loadStockData() {
+            const stockData = JSON.parse(localStorage.getItem('stockData') || '[]');
+            
+            // 计算总库存
+            const totalStock = stockData.reduce((sum, item) => sum + (item.quantity || 0), 0);
+            document.getElementById('totalStock').textContent = totalStock;
+            
+            // 计算近效期预警
+            const today = new Date();
+            const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+            const expiryWarning = stockData.filter(item => {
+                const expiryDate = new Date(item.expiryDate);
+                return expiryDate <= thirtyDaysLater && expiryDate >= today;
+            }).length;
+            document.getElementById('expiryWarning').textContent = expiryWarning;
+            
+            // 计算库存状态分布
+            calculateStockStatusDistribution(stockData);
+        }
+        
+        // 加载最近活动
+        function loadRecentActivities() {
+            const recordData = JSON.parse(localStorage.getItem('recordData') || '[]');
+            const recentActivitiesElement = document.getElementById('recentActivities');
+            
+            // 按时间倒序排序，显示最近的5条记录
+            const sortedRecords = recordData.sort((a, b) => {
+                return new Date(b.date) - new Date(a.date);
+            }).slice(0, 5);
+            
+            if (sortedRecords.length === 0) {
+                recentActivitiesElement.innerHTML = '<p class="text-center text-gray-500 py-4">暂无活动记录</p>';
+                return;
+            }
+            
+            recentActivitiesElement.innerHTML = sortedRecords.map(record => {
+                let icon = '';
+                let iconColor = '';
+                let bgColor = '';
+                let activityText = '';
+                
+                switch (record.type) {
+                    case 'in':
+                        icon = 'fa-archive';
+                        iconColor = 'text-primary';
+                        bgColor = 'bg-blue-100';
+                        activityText = `${record.materialName} 入库`;
+                        break;
+                    case 'out':
+                        icon = 'fa-sign-out';
+                        iconColor = 'text-success';
+                        bgColor = 'bg-green-100';
+                        activityText = `${record.materialName} 出库`;
+                        break;
+                    default:
+                        icon = 'fa-info-circle';
+                        iconColor = 'text-info';
+                        bgColor = 'bg-blue-100';
+                        activityText = record.materialName || '系统操作';
+                }
+                
+                return `
+                    <div class="flex items-center">
+                        <div class="${bgColor} p-2 rounded-full mr-3">
+                            <i class="fa ${icon} ${iconColor}"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium">${activityText}</p>
+                            <p class="text-xs text-gray-500">${record.date}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // 计算库存状态分布并更新图表
+        function calculateStockStatusDistribution(stockData) {
+            const today = new Date();
+            const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+            
+            let normalCount = 0;
+            let warningCount = 0;
+            let expiredCount = 0;
+            let lowCount = 0;
+            
+            stockData.forEach(item => {
+                if (item.quantity === 0) {
+                    lowCount++;
+                } else {
+                    const expiryDate = new Date(item.expiryDate);
+                    if (expiryDate < today) {
+                        expiredCount++;
+                    } else if (expiryDate <= thirtyDaysLater) {
+                        warningCount++;
+                    } else {
+                        normalCount++;
+                    }
+                }
+            });
+            
+            // 更新图表数据
+            if (stockStatusChart) {
+                stockStatusChart.data.datasets[0].data = [normalCount, warningCount, expiredCount, lowCount];
+                stockStatusChart.update();
+            }
+        }
+        
+        // 导航函数
+        function navigateTo(page) {
+            window.location.href = page;
+        }
+        
+        // 退出登录
+        function logout() {
+            console.log('执行退出登录');
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('username');
+            console.log('已清除登录状态，准备跳转');
+            window.location.href = 'index.html';
+        }
+        
+        // 显示通知模态框
+        function showNotificationModal() {
+            document.getElementById('notificationModal').classList.remove('hidden');
+            // 切换到消息列表选项卡
+            switchNotificationTab('messages');
+            // 加载消息列表
+            loadMessages();
+            // 加载人员列表（用于发送消息）
+            loadPersonnelForMessage();
+        }
+        
+        // 隐藏通知模态框
+        function hideNotificationModal() {
+            document.getElementById('notificationModal').classList.add('hidden');
+        }
+        
+        // 切换通知选项卡
+        function switchNotificationTab(tabName) {
+            // 更新选项卡状态
+            document.querySelectorAll('.notification-tab').forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.dataset.tab === tabName) {
+                    tab.classList.add('active');
+                }
+            });
+            
+            // 显示对应内容
+            document.getElementById('messagesContent').classList.add('hidden');
+            document.getElementById('composeContent').classList.add('hidden');
+            document.getElementById(tabName + 'Content').classList.remove('hidden');
+            
+            // 如果切换到发送消息选项卡，重新加载人员列表
+            if (tabName === 'compose') {
+                loadPersonnelForMessage();
+            }
+        }
+        
+        // 加载消息列表
+        function loadMessages() {
+            const messages = getMessages();
+            const messagesContent = document.getElementById('messagesContent');
+            const currentUser = localStorage.getItem('username') || '管理员';
+            
+            if (messages.length === 0) {
+                messagesContent.innerHTML = '<p class="text-center text-gray-500 py-4">暂无消息</p>';
+                return;
+            }
+            
+            // 按时间倒序排序
+            const sortedMessages = messages.sort((a, b) => {
+                return new Date(b.date) - new Date(a.date);
+            });
+            
+            // 获取人员数据
+            const personnelData = JSON.parse(localStorage.getItem('personnelData')) || [];
+            
+            // 根据用户名获取真实姓名
+            function getSenderName(username) {
+                const user = personnelData.find(person => person.username === username);
+                return user && user.name ? user.name : username;
+            }
+            
+            messagesContent.innerHTML = sortedMessages.map(message => {
+                const isUnread = !message.readBy.includes(currentUser);
+                const isSentByMe = message.sender === currentUser;
+                const senderName = getSenderName(message.sender);
+                
+                return `
+                    <div class="mb-4 border-b border-gray-100 pb-3 last:border-b-0 ${isUnread ? 'bg-blue-50' : ''}">
+                        <div class="flex justify-between items-start mb-1">
+                            <div>
+                                <span class="font-medium ${isSentByMe ? 'text-primary' : 'text-gray-700'}">${isSentByMe ? '我' : senderName}</span>
+                                <span class="text-xs text-gray-500 ml-2">${message.date}</span>
+                            </div>
+                            ${isUnread ? '<span class="bg-primary text-white text-xs px-2 py-0.5 rounded">未读</span>' : ''}
+                        </div>
+                        ${message.subject ? `<div class="font-medium mb-1">${message.subject}</div>` : ''}
+                        <div class="text-sm text-gray-600 mb-2">${message.content}</div>
+                        ${!isSentByMe ? `
+                            <div class="flex justify-end">
+                                <button onclick="showReplyModal('${message.sender}', '${message.id}')" class="text-primary text-sm hover:underline">回复</button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+            
+            // 标记消息为已读
+            markMessagesAsRead(currentUser);
+            // 更新未读消息计数
+            updateUnreadCount();
+        }
+        
+        // 显示回复消息模态框
+        function showReplyModal(recipient, messageId) {
+            // 获取人员数据
+            const personnelData = JSON.parse(localStorage.getItem('personnelData')) || [];
+            // 根据用户名获取真实姓名
+            const user = personnelData.find(person => person.username === recipient);
+            const recipientName = user && user.name ? user.name : recipient;
+            
+            document.getElementById('replyRecipient').value = recipientName;
+            // 存储消息ID和原始收件人用户名用于回复
+            document.getElementById('replyForm').dataset.originalMessageId = messageId;
+            document.getElementById('replyForm').dataset.originalRecipient = recipient;
+            document.getElementById('replyModal').classList.remove('hidden');
+        }
+        
+        // 隐藏回复消息模态框
+        function hideReplyModal() {
+            document.getElementById('replyModal').classList.add('hidden');
+            document.getElementById('replyForm').reset();
+            delete document.getElementById('replyForm').dataset.originalMessageId;
+        }
+        
+        // 加载人员列表（用于发送消息）
+        function loadPersonnelForMessage() {
+            const recipientSelect = document.getElementById('recipient');
+            let personnel = JSON.parse(localStorage.getItem('personnelData')) || [];
+            
+            // 如果没有人员数据，创建一些模拟数据
+            if (personnel.length === 0) {
+                const mockPersonnel = [
+                    { id: 1, name: '张三', username: 'zhangsan', password: '123456', role: '管理员' },
+                    { id: 2, name: '李四', username: 'lisi', password: '123456', role: '操作员' },
+                    { id: 3, name: '王五', username: 'wangwu', password: '123456', role: '操作员' }
+                ];
+                localStorage.setItem('personnelData', JSON.stringify(mockPersonnel));
+                personnel = mockPersonnel;
+            }
+            
+            // 清空现有选项（保留"所有人"选项）
+            recipientSelect.innerHTML = '<option value="all">所有人</option>';
+            
+            // 添加人员选项
+            personnel.forEach(person => {
+                const option = document.createElement('option');
+                option.value = person.name;
+                option.textContent = person.name;
+                recipientSelect.appendChild(option);
+            });
+        }
+        
+        // 发送消息
+        function sendMessage() {
+            const recipient = document.getElementById('recipient').value;
+            const subject = document.getElementById('messageSubject').value;
+            const content = document.getElementById('messageContent').value;
+            const sender = localStorage.getItem('username') || '管理员';
+            
+            if (!content.trim()) {
+                alert('请输入消息内容');
+                return;
+            }
+            
+            const messages = getMessages();
+            const newMessage = {
+                id: Date.now().toString(),
+                sender: sender,
+                recipient: recipient,
+                subject: subject,
+                content: content,
+                date: new Date().toLocaleString('zh-CN'),
+                readBy: []
+            };
+            
+            messages.push(newMessage);
+            saveMessages(messages);
+            
+            // 重置表单
+            document.getElementById('composeForm').reset();
+            // 切换到消息列表
+            switchNotificationTab('messages');
+            // 重新加载消息列表
+            loadMessages();
+            // 显示成功提示
+            alert('消息发送成功！');
+        }
+        
+        // 发送回复
+        function sendReply() {
+            const recipient = document.getElementById('replyForm').dataset.originalRecipient;
+            const content = document.getElementById('replyContent').value;
+            const sender = localStorage.getItem('username') || '管理员';
+            const originalMessageId = document.getElementById('replyForm').dataset.originalMessageId;
+            
+            if (!content.trim()) {
+                alert('请输入回复内容');
+                return;
+            }
+            
+            const messages = getMessages();
+            const originalMessage = messages.find(msg => msg.id === originalMessageId);
+            
+            let subject = '回复: ';
+            if (originalMessage && originalMessage.subject) {
+                subject += originalMessage.subject;
+            } else {
+                subject += '消息';
+            }
+            
+            const replyMessage = {
+                id: Date.now().toString(),
+                sender: sender,
+                recipient: recipient,
+                subject: subject,
+                content: content,
+                date: new Date().toLocaleString('zh-CN'),
+                readBy: []
+            };
+            
+            messages.push(replyMessage);
+            saveMessages(messages);
+            
+            // 隐藏回复模态框
+            hideReplyModal();
+            // 重新加载消息列表
+            loadMessages();
+            // 显示成功提示
+            alert('回复发送成功！');
+        }
+        
+        // 获取消息数据
+        function getMessages() {
+            return JSON.parse(localStorage.getItem('messages') || '[]');
+        }
+        
+        // 保存消息数据
+        function saveMessages(messages) {
+            localStorage.setItem('messages', JSON.stringify(messages));
+        }
+        
+        // 标记消息为已读
+        function markMessagesAsRead(username) {
+            const messages = getMessages();
+            let hasChanges = false;
+            
+            messages.forEach(message => {
+                if (message.recipient === username || message.recipient === 'all') {
+                    if (!message.readBy.includes(username)) {
+                        message.readBy.push(username);
+                        hasChanges = true;
+                    }
+                }
+            });
+            
+            if (hasChanges) {
+                saveMessages(messages);
+            }
+        }
+        
+        // 更新未读消息计数
+        function updateUnreadCount() {
+            const messages = getMessages();
+            const currentUser = localStorage.getItem('username') || '管理员';
+            
+            let unreadCount = 0;
+            messages.forEach(message => {
+                if ((message.recipient === currentUser || message.recipient === 'all') && 
+                    !message.readBy.includes(currentUser)) {
+                    unreadCount++;
+                }
+            });
+            
+            const notificationBadge = document.querySelector('#notificationBtn span');
+            if (notificationBadge) {
+                if (unreadCount > 0) {
+                    notificationBadge.textContent = unreadCount;
+                    notificationBadge.classList.remove('hidden');
+                } else {
+                    notificationBadge.classList.add('hidden');
+                }
+            }
+        }
+        
+        // 初始化时更新未读消息计数
+        function initUnreadCount() {
+            updateUnreadCount();
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化未读消息计数
+            initUnreadCount();
+        });
+        
+        // 通知按钮点击事件
+        document.getElementById('notificationBtn').addEventListener('click', function() {
+            showNotificationModal();
+        });
+        
+        // 用户按钮点击事件
+        document.getElementById('userBtn').addEventListener('click', function() {
+            console.log('用户按钮被点击');
+            if (confirm('确定要退出登录吗？')) {
+                logout();
+            }
+        });
+        
+        // 消息选项卡切换
+        document.querySelectorAll('.notification-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabName = this.dataset.tab;
+                switchNotificationTab(tabName);
+            });
+        });
+        
+        // 发送消息表单提交
+        document.getElementById('composeForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            sendMessage();
+        });
+        
+        // 回复消息表单提交
+        document.getElementById('replyForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            sendReply();
+        });
+
+        // 扫码相关函数
+        function openScanModal() {
+            document.getElementById('scanModal').classList.remove('hidden');
+        }
+
+        function closeScanModal() {
+            document.getElementById('scanModal').classList.add('hidden');
+            // 停止扫码
+            if (window.html5QrCode) {
+                try {
+                    window.html5QrCode.stop();
+                } catch (error) {
+                    console.log('Error stopping scanner:', error);
+                }
+            }
+        }
+
+        function startScan() {
+            const scanContainer = document.getElementById('scanContainer');
+            
+            try {
+                // 初始化扫码器
+                window.html5QrCode = new Html5Qrcode('scanContainer');
+                
+                // 配置扫码参数
+                const config = {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 }
+                };
+                
+                // 开始扫码
+                window.html5QrCode.start(
+                    { facingMode: 'environment' },
+                    config,
+                    handleScanSuccess,
+                    handleScanError
+                );
+            } catch (error) {
+                console.error('Error starting scanner:', error);
+                alert('启动扫码失败，请检查摄像头权限');
+            }
+        }
+
+        function handleScanSuccess(qrCodeMessage) {
+            // 停止扫码
+            if (window.html5QrCode) {
+                try {
+                    window.html5QrCode.stop();
+                } catch (error) {
+                    console.log('Error stopping scanner:', error);
+                }
+            }
+            
+            // 关闭扫码模态框
+            closeScanModal();
+            
+            // 处理扫码结果
+            processScanResult(qrCodeMessage);
+        }
+
+        function handleScanError(error) {
+            // 忽略常见错误，如摄像头未就绪
+            console.log('Scan error:', error);
+        }
+
+        function processScanResult(qrCodeMessage) {
+            // 解析扫码结果
+            const resultContent = document.getElementById('scanResultContent');
+            
+            // 尝试从扫码结果中提取标准物质信息
+            // 扫码结果格式：标准物质详情\n名称: xxx\n编号: xxx\n...
+            const lines = qrCodeMessage.split('\n');
+            let materialInfo = {};
+            
+            // 解析每一行信息
+            lines.forEach(line => {
+                if (line.includes(':')) {
+                    const [key, value] = line.split(':').map(item => item.trim());
+                    // 移除"标准物质详情"这一行
+                    if (key !== '标准物质详情') {
+                        materialInfo[key] = value;
+                    }
+                }
+            });
+            
+            // 生成详情HTML
+            let html = '';
+            for (const [key, value] of Object.entries(materialInfo)) {
+                html += `
+                    <div class="flex justify-between">
+                        <span class="font-medium">${key}:</span>
+                        <span>${value}</span>
+                    </div>
+                `;
+            }
+            
+            // 添加出库按钮
+            html += `
+                <div class="mt-6 pt-4 border-t border-gray-200">
+                    <button onclick="outboundScannedMaterial('${JSON.stringify(materialInfo).replace(/'/g, "\'")}')" class="w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-blue-600">
+                        出库操作
+                    </button>
+                </div>
+            `;
+            
+            resultContent.innerHTML = html;
+            
+            // 显示扫码结果模态框
+            document.getElementById('scanResultModal').classList.remove('hidden');
+        }
+
+        function closeScanResultModal() {
+            document.getElementById('scanResultModal').classList.add('hidden');
+        }
+
+        function outboundScannedMaterial(materialInfoStr) {
+            const materialInfo = JSON.parse(materialInfoStr);
+            
+            // 跳转到库存页面并自动打开出库模态框
+            // 这里需要将信息传递给库存页面
+            localStorage.setItem('scannedMaterialInfo', JSON.stringify(materialInfo));
+            navigateTo('stock.html');
+        }
+
+        // 扫码按钮点击事件
+        document.getElementById('scanBtn').addEventListener('click', function() {
+            openScanModal();
+        });
+    </script>
+</body>
+</html>

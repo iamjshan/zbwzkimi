@@ -1,0 +1,1511 @@
+<html lang="zh-CN"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>标准物质管理助手 - 库存管理</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- QRCode.js for generating QR codes -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#64748b',
+                        success: '#22c55e',
+                        danger: '#ef4444',
+                        warning: '#f59e0b',
+                        info: '#0ea5e9',
+                        light: '#f8fafc',
+                        dark: '#1e293b'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .transition-all-300 {
+                transition: all 300ms ease-in-out;
+            }
+        }
+    </style>
+    <style>
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: #f1f5f9;
+        }
+        .header {
+            background-color: #3b82f6;
+            color: white;
+            padding: 1rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+        .content {
+            margin-top: 4.5rem;
+            padding: 1rem;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem;
+            color: #64748b;
+            transition: all 0.3s ease;
+        }
+        .nav-item.active {
+            color: #3b82f6;
+        }
+        .nav-item i {
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
+        }
+        .nav-item span {
+            font-size: 0.75rem;
+        }
+        .footer {
+            background-color: white;
+            border-top: 1px solid #e2e8f0;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+        .tab {
+            padding: 0.75rem 1rem;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .tab.active {
+            border-bottom: 2px solid #3b82f6;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+        .stock-item {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 0;
+        }
+        .stock-item:last-child {
+            border-bottom: none;
+        }
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status-normal {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        .status-warning {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        .status-danger {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        .status-info {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- 头部 -->
+    <div class="header flex items-center justify-between">
+        <div class="flex items-center">
+            <button onclick="navigateTo('dashboard.html')" class="mr-4">
+                <i class="fa fa-arrow-left text-xl"></i>
+            </button>
+            <h1 class="text-xl font-bold">库存管理</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+            <button id="searchBtn">
+                <i class="fa fa-search text-xl"></i>
+            </button>
+            <button id="addBtn" onclick="showAddModal()">
+                <i class="fa fa-plus text-xl"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- 内容区 -->
+    <div class="content pb-20">
+        <!-- 搜索栏 -->
+        <div class="card mb-4">
+            <div class="relative">
+                <input type="text" id="searchInput" placeholder="搜索标准物质..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                <i class="fa fa-search absolute left-3 top-3 text-gray-400"></i>
+            </div>
+        </div>
+
+        <!-- 标签页 -->
+        <div class="flex border-b border-gray-200 mb-4">
+            <div class="tab active" onclick="switchTab('all')">全部</div>
+            <div class="tab" onclick="switchTab('normal')">正常</div>
+            <div class="tab" onclick="switchTab('warning')">即将过期</div>
+            <div class="tab" onclick="switchTab('expired')">已过期</div>
+            <div class="tab" onclick="switchTab('low')">库存不足</div>
+        </div>
+
+        <!-- 库存列表 -->
+        <div id="stockList" class="card">
+            <!-- 库存项将通过JavaScript动态生成 -->
+        </div>
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="footer">
+        <div class="flex justify-around">
+            <div class="nav-item" onclick="navigateTo('dashboard.html')">
+                <i class="fa fa-home"></i>
+                <span>首页</span>
+            </div>
+            <div class="nav-item active" onclick="navigateTo('stock.html')">
+                <i class="fa fa-cubes"></i>
+                <span>库存</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('personnel.html')">
+                <i class="fa fa-users"></i>
+                <span>人员</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('settings.html')">
+                <i class="fa fa-cog"></i>
+                <span>设置</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 出库标准物质模态框 -->
+    <div id="outModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">出库登记</h2>
+                <button onclick="hideOutModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <form id="outForm" class="space-y-4">
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold mb-2">出库信息</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label for="outMaterial" class="block text-sm font-medium text-gray-700 mb-1">选择标准物质<span class="text-danger">*</span></label>
+                            <select id="outMaterial" name="outMaterial" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                                <option value="">请选择要出库的标准物质</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="outOperator" class="block text-sm font-medium text-gray-700 mb-1">操作人员<span class="text-danger">*</span></label>
+                            <select id="outOperator" name="outOperator" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                                <option value="">请选择操作人员</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="outPurpose" class="block text-sm font-medium text-gray-700 mb-1">出库用途</label>
+                            <input type="text" id="outPurpose" name="outPurpose" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="请输入出库用途">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold mb-2">图片上传</h3>
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-primary transition-all" onclick="document.getElementById('outImageUpload').click()">
+                        <input type="file" id="outImageUpload" name="outImageUpload" accept="image/*" class="hidden" multiple>
+                        <div id="outImagePreview" class="grid grid-cols-3 gap-2 mt-2"></div>
+                        <div id="outUploadPlaceholder" class="py-8">
+                            <i class="fa fa-camera text-4xl text-gray-400 mb-2"></i>
+                            <p class="text-gray-500">点击拍照或上传图片</p>
+                            <p class="text-xs text-gray-400 mt-1">最多可上传3张图片</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="hideOutModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100">取消</button>
+                    <button type="button" id="confirmOutBtn" class="px-4 py-2 bg-warning text-white rounded-md hover:bg-yellow-600">确认出库</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 添加标准物质模态框 -->
+    <div id="addModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">入库登记</h2>
+                <button onclick="hideAddModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <form id="addForm" class="space-y-4">
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold mb-2">基本信息</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-700 mb-1">标准物质名称<span class="text-danger">*</span></label>
+                            <input type="text" id="name" name="name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required="">
+                        </div>
+                        <div>
+                            <label for="code" class="block text-sm font-medium text-gray-700 mb-1">标准物质编号<span class="text-danger">*</span></label>
+                            <input type="text" id="code" name="code" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required="">
+                        </div>
+                        <div>
+                            <label for="batchNumber" class="block text-sm font-medium text-gray-700 mb-1">批次号</label>
+                            <input type="text" id="batchNumber" name="batchNumber" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">唯一性标识方式<span class="text-danger">*</span></label>
+                            <div class="flex items-center space-x-4">
+                                <label class="flex items-center">
+                                    <input type="radio" name="uniqueIdType" value="auto" class="mr-2" checked="">
+                                    <span>自动生成（批次号+序号）</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="uniqueIdType" value="manual" class="mr-2">
+                                    <span>手动输入</span>
+                                </label>
+                            </div>
+                            <input type="text" id="uniqueId" name="uniqueId" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent mt-2 hidden">
+                        </div>
+                        <div>
+                            <label for="manufacturer" class="block text-sm font-medium text-gray-700 mb-1">生产厂家</label>
+                            <input type="text" id="manufacturer" name="manufacturer" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                        </div>
+                        <div>
+                            <label for="concentration" class="block text-sm font-medium text-gray-700 mb-1">浓度</label>
+                            <input type="text" id="concentration" name="concentration" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="如：100μg/mL">
+                        </div>
+                        <div>
+                            <label for="uncertainty" class="block text-sm font-medium text-gray-700 mb-1">不确定度</label>
+                            <input type="text" id="uncertainty" name="uncertainty" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="如：0.5%">
+                        </div>
+                        <div>
+                            <label for="storageCondition" class="block text-sm font-medium text-gray-700 mb-1">稀释条件</label>
+                            <input type="text" id="storageCondition" name="storageCondition" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="如：使用前用纯水稀释">
+                        </div>
+                        <div>
+                            <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">数量<span class="text-danger">*</span></label>
+                            <input type="number" id="quantity" name="quantity" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required="">
+                        </div>
+                        <div>
+                            <label for="operator" class="block text-sm font-medium text-gray-700 mb-1">操作人员<span class="text-danger">*</span></label>
+                            <select id="operator" name="operator" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required="">
+                                <option value="">请选择操作人员</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="expiryDate" class="block text-sm font-medium text-gray-700 mb-1">有效期<span class="text-danger">*</span></label>
+                            <input type="date" id="expiryDate" name="expiryDate" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required="">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold mb-2">图片上传</h3>
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-primary transition-all" onclick="document.getElementById('imageUpload').click()">
+                        <input type="file" id="imageUpload" name="imageUpload" accept="image/*" class="hidden" multiple="">
+                        <div id="imagePreview" class="grid grid-cols-3 gap-2 mt-2"></div>
+                        <div id="uploadPlaceholder" class="py-8">
+                            <i class="fa fa-camera text-4xl text-gray-400 mb-2"></i>
+                            <p class="text-gray-500">点击拍照或上传图片</p>
+                            <p class="text-xs text-gray-400 mt-1">最多可上传3张图片</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="hideAddModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100">取消</button>
+                    <button type="submit" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-blue-600">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 填充出库表单
+        function populateOutboundForm(materialInfo) {
+            // 尝试根据扫码结果中的编号或名称查找对应的库存项
+            const stockData = JSON.parse(localStorage.getItem('stockData')) || [];
+            
+            // 优先根据编号查找
+            let stockItem = stockData.find(item => 
+                item.code === materialInfo['编号'] || 
+                item.name === materialInfo['名称']
+            );
+            
+            if (stockItem) {
+                // 填充出库表单
+                document.getElementById('outMaterial').value = stockItem.id;
+                document.getElementById('outQuantity').value = '1'; // 默认出库数量为1
+            }
+        }
+        
+        // 检查登录状态
+        document.addEventListener('DOMContentLoaded', function() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            
+            if (!isLoggedIn) {
+                window.location.href = 'index.html';
+            }
+            
+            // 检查是否有扫码传递的标准物质信息
+            const scannedMaterialInfo = localStorage.getItem('scannedMaterialInfo');
+            if (scannedMaterialInfo) {
+                try {
+                    const materialInfo = JSON.parse(scannedMaterialInfo);
+                    // 打开出库模态框
+                    showOutModal();
+                    // 填充标准物质信息
+                    populateOutboundForm(materialInfo);
+                    // 清除临时存储的信息
+                    localStorage.removeItem('scannedMaterialInfo');
+                } catch (error) {
+                    console.error('Error parsing scanned material info:', error);
+                    // 清除无效的信息
+                    localStorage.removeItem('scannedMaterialInfo');
+                }
+            }
+            
+            // 加载操作人员数据
+            loadOperators();
+            
+            // 初始化库存数据
+            initStockData();
+            
+            // 渲染库存列表
+            renderStockList();
+            
+            // 搜索功能
+            document.getElementById('searchInput').addEventListener('input', function() {
+                renderStockList();
+            });
+            
+            // 检查URL参数，如果有action=add则自动显示添加模态框，如果有action=out则自动显示出库模态框
+            const urlParams = new URLSearchParams(window.location.search);
+            const action = urlParams.get('action');
+            if (action === 'add') {
+                // 延迟显示模态框，确保页面完全加载
+                setTimeout(function() {
+                    showAddModal();
+                }, 300);
+            } else if (action === 'out') {
+                // 延迟显示出库模态框，确保页面完全加载
+                setTimeout(function() {
+                    showOutModal();
+                }, 300);
+            }
+            
+            // 为确认出库按钮添加点击事件
+            document.getElementById('confirmOutBtn').addEventListener('click', function() {
+                console.log('确认出库按钮被点击');
+                
+                // 获取表单数据
+                const materialId = parseInt(document.getElementById('outMaterial').value);
+                const operator = document.getElementById('outOperator').value;
+                const purpose = document.getElementById('outPurpose').value;
+                
+                // 获取上传的图片
+                const outImageUpload = document.getElementById('outImageUpload');
+                const images = [];
+                
+                // 检查是否有文件被选择
+                if (outImageUpload.files.length === 0) {
+                    processOutbound(materialId, operator, purpose, images);
+                    return;
+                }
+
+                // 图片压缩函数 - 减少内存占用和存储空间
+                function compressImage(file, callback) {
+                    const reader = new FileReader();
+                    reader.onload = function(readerEvent) {
+                        const img = new Image();
+                        img.onload = function() {
+                            // 设置最大尺寸以减少内存占用
+                            const maxWidth = 800;
+                            const maxHeight = 600;
+                            let {width, height} = img;
+
+                            // 计算缩放比例
+                            if (width > height) {
+                                if (width > maxWidth) {
+                                    height *= maxWidth / width;
+                                    width = maxWidth;
+                                }
+                            } else {
+                                if (height > maxHeight) {
+                                    width *= maxHeight / height;
+                                    height = maxHeight;
+                                }
+                            }
+
+                            // 创建canvas进行压缩
+                            const canvas = document.createElement('canvas');
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+
+                            // 转换为JPEG格式并设置质量为0.7以减小体积
+                            canvas.toBlob(function(blob) {
+                                const compressedFile = new File([blob], file.name, {type: 'image/jpeg'});
+                                
+                                // 将压缩后的文件转换为base64
+                                const compressedReader = new FileReader();
+                                compressedReader.onload = function(e) {
+                                    callback({
+                                        name: file.name,
+                                        size: compressedFile.size,
+                                        type: compressedFile.type,
+                                        data: e.target.result
+                                    });
+                                };
+                                compressedReader.readAsDataURL(compressedFile);
+                            }, 'image/jpeg', 0.7);
+                        };
+                        img.src = readerEvent.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+
+                // 处理多张图片的异步操作
+                let loadedCount = 0;
+                for (let i = 0; i < outImageUpload.files.length; i++) {
+                    const file = outImageUpload.files[i];
+                    
+                    // 对每张图片进行压缩处理
+                    compressImage(file, function(imageData) {
+                        images.push(imageData);
+                        loadedCount++;
+                        
+                        // 当所有图片都处理完成后，调用出库函数
+                        if (loadedCount === outImageUpload.files.length) {
+                            processOutbound(materialId, operator, purpose, images);
+                        }
+                    });
+                }
+            });
+            
+            // 处理出库操作
+            function processOutbound(materialId, operator, purpose, images) {
+                console.log('选择的物质ID:', materialId);
+                console.log('选择的操作人员:', operator);
+                
+                // 表单验证
+                if (!materialId) {
+                    alert('请选择要出库的标准物质！');
+                    return;
+                }
+                if (!operator) {
+                    alert('请选择操作人员！');
+                    return;
+                }
+                
+                // 查找要出库的库存项
+                const itemIndex = stockData.findIndex(item => item.id === materialId);
+                console.log('找到的索引:', itemIndex);
+                if (itemIndex === -1) {
+                    alert('未找到该标准物质！');
+                    return;
+                }
+                
+                const item = stockData[itemIndex];
+                
+                // 弹出确认对话框
+                if (confirm(`确定要将 ${item.name}（唯一性标识：${item.uniqueId}）出库吗？`)) {
+                    // 从库存数据中移除
+                    stockData.splice(itemIndex, 1);
+                    
+                    // 保存库存数据
+                    saveStockData();
+                    
+                    // 添加出库记录
+                    const recordData = JSON.parse(localStorage.getItem('recordData') || '[]');
+                    const newRecord = {
+                        id: Date.now(),
+                        type: 'out',
+                        materialName: item.name,
+                        quantity: item.quantity,
+                        operator: operator,
+                        date: new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
+                        note: `唯一性标识: ${item.uniqueId}，出库用途: ${purpose || '未填写'}`,
+                        images: images
+                    };
+                    recordData.push(newRecord);
+                    localStorage.setItem('recordData', JSON.stringify(recordData));
+                    
+                    // 重新渲染库存列表
+                    renderStockList();
+                    
+                    // 隐藏模态框
+                    hideOutModal();
+                    
+                    // 显示成功提示
+                    alert('出库成功！');
+                }
+            }
+        });
+        
+        // 模拟库存数据
+        let stockData = [];
+        
+        // 初始化库存数据
+        function initStockData() {
+            // 从localStorage获取库存数据，如果没有则使用空数组
+            const savedStockData = localStorage.getItem('stockData');
+            if (savedStockData) {
+                stockData = JSON.parse(savedStockData);
+            } else {
+                stockData = [];
+            }
+        }
+        
+        // 保存库存数据到localStorage
+        function saveStockData() {
+            localStorage.setItem('stockData', JSON.stringify(stockData));
+        }
+        
+        // 渲染库存列表
+        function renderStockList() {
+            const stockListElement = document.getElementById('stockList');
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            const activeTab = document.querySelector('.tab.active').textContent;
+            
+            // 过滤库存数据
+            let filteredData = stockData;
+            
+            // 根据搜索输入过滤
+            if (searchInput) {
+                filteredData = filteredData.filter(item => 
+                    item.name.toLowerCase().includes(searchInput) || 
+                    item.code.toLowerCase().includes(searchInput) ||
+                    item.batchNumber?.toLowerCase().includes(searchInput) ||
+                    item.uniqueId?.toLowerCase().includes(searchInput)
+                );
+            }
+            
+            // 根据标签页过滤
+            if (activeTab !== '全部') {
+                let statusFilter = '';
+                switch (activeTab) {
+                    case '正常':
+                        statusFilter = 'normal';
+                        break;
+                    case '即将过期':
+                        statusFilter = 'warning';
+                        break;
+                    case '已过期':
+                        statusFilter = 'expired';
+                        break;
+                    case '库存不足':
+                        statusFilter = 'low';
+                        break;
+                }
+                filteredData = filteredData.filter(item => item.status === statusFilter);
+            }
+            
+            // 按名称分组
+            const groupedData = {};
+            filteredData.forEach(item => {
+                if (!groupedData[item.name]) {
+                    groupedData[item.name] = {
+                        items: [],
+                        totalQuantity: 0,
+                        status: 'normal' // 默认状态
+                    };
+                }
+                groupedData[item.name].items.push(item);
+                groupedData[item.name].totalQuantity += item.quantity;
+                
+                // 确定分组的状态（优先级：已过期 > 即将过期 > 库存不足 > 正常）
+                if (item.status === 'expired') {
+                    groupedData[item.name].status = 'expired';
+                } else if (item.status === 'warning' && groupedData[item.name].status !== 'expired') {
+                    groupedData[item.name].status = 'warning';
+                } else if (item.status === 'low' && groupedData[item.name].status !== 'expired' && groupedData[item.name].status !== 'warning') {
+                    groupedData[item.name].status = 'low';
+                }
+            });
+            
+		        // 计算每个分组中各种状态的数量
+	            function calculateStatusCounts(items) {
+	                const counts = { normal: 0, warning: 0, expired: 0, low: 0 };
+	                
+	                items.forEach(item => {
+	                    if (item.status === 'normal') {
+	                        counts.normal += item.quantity;
+	                    } else if (item.status === 'warning') {
+	                        counts.warning += item.quantity;
+	                    } else if (item.status === 'expired') {
+	                        counts.expired += item.quantity;
+	                    } else if (item.status === 'low') {
+	                        counts.low += item.quantity;
+	                    }
+	                });
+	                
+	                return counts;
+	            }
+
+            // 渲染库存列表
+            if (Object.keys(groupedData).length === 0) {
+                stockListElement.innerHTML = '<p class="text-center text-gray-500 py-4">暂无数据</p>';
+                return;
+            }
+            
+            stockListElement.innerHTML = Object.entries(groupedData).map(([name, group]) => {
+                // 计算各状态的数量
+                const statusCounts = calculateStatusCounts(group.items);
+                
+                // 构建状态标签 - 按照正常、即将、过期的顺序显示（按用户要求只显示这三种状态）
+                let statusLabels = '';
+                if (statusCounts.normal > 0) {
+                    statusLabels += `<span class="ml-2 status-badge status-normal">正常:${statusCounts.normal}</span>`;
+                }
+                if (statusCounts.warning > 0) {
+                    statusLabels += `<span class="ml-2 status-badge status-warning">即将:${statusCounts.warning}</span>`;
+                }
+                if (statusCounts.expired > 0) {
+                    statusLabels += `<span class="ml-2 status-badge status-danger">过期:${statusCounts.expired}</span>`;
+                }
+                
+                // 确定整体状态（优先级：已过期 > 即将过期 > 库存不足 > 正常）
+                let overallStatus = 'normal';
+                for (const item of group.items) {
+                    if (item.status === 'expired') {
+                        overallStatus = 'expired';
+                        break;
+                    } else if (item.status === 'warning') {
+                        overallStatus = 'warning';
+                    } else if (item.status === 'low' && overallStatus !== 'expired' && overallStatus !== 'warning') {
+                        overallStatus = 'low';
+                    }
+                }
+                
+                let statusText = '';
+                let statusClass = '';
+                
+                switch (overallStatus) {
+                    case 'normal':
+                        statusText = '正常';
+                        statusClass = 'status-normal';
+                        break;
+                    case 'warning':
+                        statusText = '即将过期';
+                        statusClass = 'status-warning';
+                        break;
+                    case 'expired':
+                        statusText = '已过期';
+                        statusClass = 'status-danger';
+                        break;
+                    case 'low':
+                        statusText = '库存不足';
+                        statusClass = 'status-info';
+                        break;
+                }
+                
+                // 生成唯一的分组ID
+                const groupId = `group-${name.replace(/\s+/g, '-').toLowerCase()}`;
+                
+                return `
+                    <div class="stock-group mb-4 border border-gray-200 rounded-lg overflow-hidden">
+                        <!-- 分组标题 -->
+                    <div class="bg-gray-50 p-4 flex justify-between items-center cursor-pointer" onclick="toggleGroupDetails('${groupId}')">
+                        <div class="flex items-center">
+                            <button class="mr-2 text-gray-500 hover:text-primary">
+                                <i class="fa fa-chevron-down" id="arrow-${groupId}"></i>
+                            </button>
+                            <h3 class="font-semibold text-lg">${name}${statusLabels}</h3>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="text-lg font-bold">${group.totalQuantity}</span>
+                        </div>
+                    </div>
+                        
+                        <!-- 每瓶详情 -->
+                        <div id="${groupId}" class="border-t border-gray-200 hidden">
+                            ${group.items.map(item => `
+                                <div class="p-4 border-b border-gray-100 last:border-b-0">
+                                    <div class="flex justify-between items-start">
+                                        <div class="flex-1">
+                                            <p class="text-sm font-medium">唯一性标识: ${item.uniqueId}</p>
+                                            <p class="text-sm">有效期: ${item.expiryDate}</p>
+                                            <p class="text-sm">浓度: ${item.concentration || 'N/A'}</p>
+                                            <p class="text-sm">不确定度: ${item.uncertainty || 'N/A'}</p>
+                                            <p class="text-sm">稀释条件: ${item.storageCondition || 'N/A'}</p>
+                                            <p class="text-xs mt-1 ${
+                                                item.status === 'normal' ? 'status-normal' :
+                                                item.status === 'warning' ? 'status-warning' :
+                                                item.status === 'expired' ? 'status-danger' :
+                                                'status-info'
+                                            } px-2 py-1 inline-block">状态: ${
+                                                item.status === 'normal' ? '正常' :
+                                                item.status === 'warning' ? '即将过期' :
+                                                item.status === 'expired' ? '已过期' :
+                                                '库存不足'
+                                            }</p>
+                                        </div>
+                                        <div class="flex space-x-2">
+                                            <button onclick="outboundStockItem(${item.id})" class="px-3 py-1 bg-warning text-white text-xs rounded">
+                                                出库
+                                            </button>
+                                            <button onclick="viewStockItem(${item.id})" class="px-3 py-1 bg-info text-white text-xs rounded">
+                                                查看
+                                            </button>
+                                            <button onclick="editStockItem(${item.id})" class="px-3 py-1 bg-primary text-white text-xs rounded">
+                                                编辑
+                                            </button>
+                                            <button onclick="deleteStockItem(${item.id})" class="px-3 py-1 bg-danger text-white text-xs rounded">
+                                                删除
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // 切换分组详情显示/隐藏
+        function toggleGroupDetails(groupId) {
+            const detailsElement = document.getElementById(groupId);
+            const arrowElement = document.getElementById(`arrow-${groupId}`);
+            
+            if (detailsElement.classList.contains('hidden')) {
+                detailsElement.classList.remove('hidden');
+                arrowElement.style.transform = 'rotate(180deg)';
+            } else {
+                detailsElement.classList.add('hidden');
+                arrowElement.style.transform = 'rotate(0)';
+            }
+        }
+        
+        // 切换标签页
+        function switchTab(tab) {
+            // 更新标签页状态
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            
+            // 重新渲染库存列表
+            renderStockList();
+        }
+        
+        // 加载操作人员数据
+        function loadOperators() {
+            const operatorSelect = document.getElementById('operator');
+            let personnel = JSON.parse(localStorage.getItem('personnelData')) || [];
+            
+            // 如果没有人员数据，创建一些模拟数据以便测试
+            if (personnel.length === 0) {
+                const mockPersonnel = [
+                    { id: 1, name: '张三', username: 'zhangsan', password: '123456', role: '管理员' },
+                    { id: 2, name: '李四', username: 'lisi', password: '123456', role: '操作员' },
+                    { id: 3, name: '王五', username: 'wangwu', password: '123456', role: '操作员' }
+                ];
+                localStorage.setItem('personnelData', JSON.stringify(mockPersonnel));
+                personnel = mockPersonnel;
+            }
+            
+            // 清空现有选项（保留默认选项）
+            operatorSelect.innerHTML = '<option value="">请选择操作人员</option>';
+            
+            // 添加人员选项
+            personnel.forEach(person => {
+                const option = document.createElement('option');
+                option.value = person.name;
+                option.textContent = person.name;
+                operatorSelect.appendChild(option);
+            });
+        }
+
+        // 显示添加标准物质模态框
+        function showAddModal() {
+            document.getElementById('addModal').classList.remove('hidden');
+            // 重置表单
+            document.getElementById('addForm').reset();
+            document.getElementById('imagePreview').innerHTML = '';
+            document.getElementById('uploadPlaceholder').classList.remove('hidden');
+            document.getElementById('uniqueId').classList.add('hidden');
+            
+            // 重新加载操作人员数据，确保数据最新
+            loadOperators();
+        }
+
+        // 显示出库标准物质模态框
+        function showOutModal(selectedId = null) {
+            document.getElementById('outModal').classList.remove('hidden');
+            // 重置表单
+            document.getElementById('outForm').reset();
+            
+            // 加载库存物质数据
+            loadStockForOut();
+            
+            // 加载操作人员数据
+            loadOperatorsForOut();
+            
+            // 如果指定了物质ID，自动选择该物质
+            if (selectedId) {
+                setTimeout(() => {
+                    const outMaterialSelect = document.getElementById('outMaterial');
+                    outMaterialSelect.value = selectedId;
+                }, 100);
+            }
+        }
+
+        // 隐藏出库标准物质模态框
+        function hideOutModal() {
+            document.getElementById('outModal').classList.add('hidden');
+            // 重置出库表单
+            document.getElementById('outForm').reset();
+            // 清空上传的图片预览
+            const outImagePreview = document.getElementById('outImagePreview');
+            const outUploadPlaceholder = document.getElementById('outUploadPlaceholder');
+            outImagePreview.innerHTML = '';
+            outUploadPlaceholder.classList.remove('hidden');
+            // 重置文件输入
+            document.getElementById('outImageUpload').value = '';
+        }
+
+        // 加载库存物质数据以供出库选择
+        function loadStockForOut() {
+            const materialSelect = document.getElementById('outMaterial');
+            
+            // 清空现有选项（保留默认选项）
+            materialSelect.innerHTML = '<option value="">请选择要出库的标准物质</option>';
+            
+            // 添加库存物质选项
+            stockData.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = `${item.name}（唯一性标识：${item.uniqueId}）`;
+                materialSelect.appendChild(option);
+            });
+        }
+
+        // 加载操作人员数据以供出库选择
+        function loadOperatorsForOut() {
+            const operatorSelect = document.getElementById('outOperator');
+            let personnel = JSON.parse(localStorage.getItem('personnelData')) || [];
+            
+            // 如果没有人员数据，创建一些模拟数据以便测试
+            if (personnel.length === 0) {
+                const mockPersonnel = [
+                    { id: 1, name: '张三', username: 'zhangsan', password: '123456', role: '管理员' },
+                    { id: 2, name: '李四', username: 'lisi', password: '123456', role: '操作员' },
+                    { id: 3, name: '王五', username: 'wangwu', password: '123456', role: '操作员' }
+                ];
+                localStorage.setItem('personnelData', JSON.stringify(mockPersonnel));
+                personnel = mockPersonnel;
+            }
+            
+            // 清空现有选项（保留默认选项）
+            operatorSelect.innerHTML = '<option value="">请选择操作人员</option>';
+            
+            // 添加人员选项
+            personnel.forEach(person => {
+                const option = document.createElement('option');
+                option.value = person.name;
+                option.textContent = person.name;
+                operatorSelect.appendChild(option);
+            });
+        }
+        
+        // 隐藏添加标准物质模态框
+        function hideAddModal() {
+            document.getElementById('addModal').classList.add('hidden');
+            document.getElementById('addForm').reset();
+        }
+        
+        // 唯一性标识方式切换
+        document.addEventListener('DOMContentLoaded', function() {
+            const uniqueIdRadios = document.querySelectorAll('input[name="uniqueIdType"]');
+            const uniqueIdInput = document.getElementById('uniqueId');
+            
+            uniqueIdRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.value === 'manual') {
+                        uniqueIdInput.classList.remove('hidden');
+                        uniqueIdInput.setAttribute('required', 'required');
+                    } else {
+                        uniqueIdInput.classList.add('hidden');
+                        uniqueIdInput.removeAttribute('required');
+                    }
+                });
+            });
+            
+            // 入库图片上传预览
+            const imageUpload = document.getElementById('imageUpload');
+            const imagePreview = document.getElementById('imagePreview');
+            const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+            
+            imageUpload.addEventListener('change', function(e) {
+                const files = Array.from(e.target.files);
+                
+                // 限制最多上传3张图片
+                if (files.length > 3) {
+                    alert('最多只能上传3张图片！');
+                    return;
+                }
+                
+                // 清空预览区域
+                imagePreview.innerHTML = '';
+                
+                // 如果有图片上传，隐藏占位符
+                if (files.length > 0) {
+                    uploadPlaceholder.classList.add('hidden');
+                } else {
+                    uploadPlaceholder.classList.remove('hidden');
+                }
+                
+                // 显示图片预览
+                files.forEach((file, index) => {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        const imgContainer = document.createElement('div');
+                        imgContainer.className = 'relative';
+                        
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'w-full h-24 object-cover rounded-md';
+                        
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'absolute -top-2 -right-2 bg-danger text-white rounded-full w-6 h-6 flex items-center justify-center';
+                        deleteBtn.innerHTML = '<i class="fa fa-times"></i>';
+                        deleteBtn.onclick = function() {
+                            imgContainer.remove();
+                            // 如果没有图片了，显示占位符
+                            if (imagePreview.children.length === 0) {
+                                uploadPlaceholder.classList.remove('hidden');
+                            }
+                        };
+                        
+                        imgContainer.appendChild(img);
+                        imgContainer.appendChild(deleteBtn);
+                        imagePreview.appendChild(imgContainer);
+                    };
+                    
+                    reader.readAsDataURL(file);
+                });
+            });
+            
+            // 出库图片上传预览
+            const outImageUpload = document.getElementById('outImageUpload');
+            const outImagePreview = document.getElementById('outImagePreview');
+            const outUploadPlaceholder = document.getElementById('outUploadPlaceholder');
+            
+            outImageUpload.addEventListener('change', function(e) {
+                const files = Array.from(e.target.files);
+                
+                // 限制最多上传3张图片
+                if (files.length > 3) {
+                    alert('最多只能上传3张图片！');
+                    return;
+                }
+                
+                // 清空预览区域
+                outImagePreview.innerHTML = '';
+                
+                // 如果有图片上传，隐藏占位符
+                if (files.length > 0) {
+                    outUploadPlaceholder.classList.add('hidden');
+                } else {
+                    outUploadPlaceholder.classList.remove('hidden');
+                }
+                
+                // 显示图片预览
+                files.forEach((file, index) => {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        const imgContainer = document.createElement('div');
+                        imgContainer.className = 'relative';
+                        
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'w-full h-24 object-cover rounded-md';
+                        
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'absolute -top-2 -right-2 bg-danger text-white rounded-full w-6 h-6 flex items-center justify-center';
+                        deleteBtn.innerHTML = '<i class="fa fa-times"></i>';
+                        deleteBtn.onclick = function() {
+                            imgContainer.remove();
+                            // 如果没有图片了，显示占位符
+                            if (outImagePreview.children.length === 0) {
+                                outUploadPlaceholder.classList.remove('hidden');
+                            }
+                        };
+                        
+                        imgContainer.appendChild(img);
+                        imgContainer.appendChild(deleteBtn);
+                        outImagePreview.appendChild(imgContainer);
+                    };
+                    
+                    reader.readAsDataURL(file);
+                });
+            });
+        });
+        
+        // 添加标准物质表单提交
+        document.getElementById('addForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // 获取表单数据
+            const name = document.getElementById('name').value;
+            const code = document.getElementById('code').value;
+            const batchNumber = document.getElementById('batchNumber').value;
+            const uniqueIdType = document.querySelector('input[name="uniqueIdType"]:checked').value;
+            const manualUniqueId = uniqueIdType === 'manual' ? document.getElementById('uniqueId').value : '';
+            const manufacturer = document.getElementById('manufacturer').value;
+            const concentration = document.getElementById('concentration').value;
+            const uncertainty = document.getElementById('uncertainty').value;
+            const storageCondition = document.getElementById('storageCondition').value;
+            const quantity = parseInt(document.getElementById('quantity').value);
+            const expiryDate = document.getElementById('expiryDate').value;
+            const operator = document.getElementById('operator').value;
+            
+            // 获取上传的图片
+            const imageUpload = document.getElementById('imageUpload');
+            const images = [];
+            
+            // 检查是否有文件被选择
+            if (imageUpload.files.length === 0) {
+                processInbound(name, code, batchNumber, uniqueIdType, manualUniqueId, manufacturer, concentration, uncertainty, storageCondition, quantity, expiryDate, operator, images);
+                return;
+            }
+
+            // 图片压缩函数 - 减少内存占用和存储空间
+            function compressImage(file, callback) {
+                const reader = new FileReader();
+                reader.onload = function(readerEvent) {
+                    const img = new Image();
+                    img.onload = function() {
+                        // 设置最大尺寸以减少内存占用
+                        const maxWidth = 800;
+                        const maxHeight = 600;
+                        let {width, height} = img;
+
+                        // 计算缩放比例
+                        if (width > height) {
+                            if (width > maxWidth) {
+                                height *= maxWidth / width;
+                                width = maxWidth;
+                            }
+                        } else {
+                            if (height > maxHeight) {
+                                width *= maxHeight / height;
+                                height = maxHeight;
+                            }
+                        }
+
+                        // 创建canvas进行压缩
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        // 转换为JPEG格式并设置质量为0.7以减小体积
+                        canvas.toBlob(function(blob) {
+                            const compressedFile = new File([blob], file.name, {type: 'image/jpeg'});
+                            
+                            // 将压缩后的文件转换为base64
+                            const compressedReader = new FileReader();
+                            compressedReader.onload = function(e) {
+                                callback({
+                                    name: file.name,
+                                    size: compressedFile.size,
+                                    type: compressedFile.type,
+                                    data: e.target.result
+                                });
+                            };
+                            compressedReader.readAsDataURL(compressedFile);
+                        }, 'image/jpeg', 0.7);
+                    };
+                    img.src = readerEvent.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+
+            // 处理多张图片的异步操作
+            let loadedCount = 0;
+            for (let i = 0; i < imageUpload.files.length; i++) {
+                const file = imageUpload.files[i];
+                
+                // 对每张图片进行压缩处理
+                compressImage(file, function(imageData) {
+                    images.push(imageData);
+                    loadedCount++;
+                    
+                    // 当所有图片都处理完成后，调用入库函数
+                    if (loadedCount === imageUpload.files.length) {
+                        processInbound(name, code, batchNumber, uniqueIdType, manualUniqueId, manufacturer, concentration, uncertainty, storageCondition, quantity, expiryDate, operator, images);
+                    }
+                });
+            }
+        });
+        
+        // 处理入库操作
+        function processInbound(name, code, batchNumber, uniqueIdType, manualUniqueId, manufacturer, concentration, uncertainty, storageCondition, quantity, expiryDate, operator, images) {
+            // 计算状态
+            let status = 'normal';
+            const now = new Date();  // 使用当前时间精确到毫秒
+            const expiry = new Date(expiryDate);
+            const diffTime = expiry - now;  // 时间差（毫秒）
+            
+            if (quantity === 0) {
+                status = 'low';  // 库存为0时直接标记为库存不足
+            } else if (diffTime < 1000) {  // 小于1秒的为已过期
+                status = 'expired';
+            } else if (diffTime >= 1000 && diffTime < 30 * 24 * 60 * 60 * 1000) {  // 大于等于1秒小于30天的为即将过期
+                status = 'warning';
+            } else {
+                status = 'normal';  // 大于等于30天的为正常
+            }
+            
+            // 为每瓶创建库存项
+            const baseTime = Date.now();
+            const addedItems = [];
+            
+            for (let i = 0; i < quantity; i++) {
+                // 生成唯一标识
+                let uniqueId;
+                if (uniqueIdType === 'manual') {
+                    // 手动输入时，为每瓶生成不同的唯一标识
+                    uniqueId = `${manualUniqueId}-${i + 1}`;
+                } else {
+                    // 自动生成时，为每瓶生成不同的唯一标识
+                    uniqueId = `${batchNumber || 'BATCH'}-${baseTime.toString().slice(-4)}-${String(i + 1).padStart(2, '0')}`;
+                }
+                
+                // 创建新的库存项（每瓶单独创建）
+                const newItem = {
+                    id: Date.now() + i,
+                    name,
+                    code,
+                    batchNumber,
+                    uniqueId,
+                    manufacturer,
+                    concentration,
+                    uncertainty,
+                    storageCondition,
+                    quantity: 1, // 每瓶数量为1
+                    expiryDate,
+                    operator,
+                    status,
+                    images,
+                    createdAt: new Date().toISOString()
+                };
+                
+                // 添加到库存数据
+                stockData.push(newItem);
+                addedItems.push(newItem);
+            }
+            
+            // 保存库存数据
+            saveStockData();
+            
+            // 添加记录
+            const username = localStorage.getItem('username') || '管理员';
+            // 添加到记录数据
+            const recordData = JSON.parse(localStorage.getItem('recordData') || '[]');
+            const newRecord = {
+                id: Date.now(),
+                type: 'in',
+                materialName: name,
+                quantity: quantity,
+                operator: operator,
+                date: new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
+                note: `批次号: ${batchNumber || 'N/A'}，入库${quantity}瓶`,
+                images: images
+            };
+            recordData.push(newRecord);
+            localStorage.setItem('recordData', JSON.stringify(recordData));
+            
+            // 重新渲染库存列表
+            renderStockList();
+            
+            // 隐藏模态框
+            hideAddModal();
+            
+            // 显示成功提示
+            alert(`标准物质添加成功！已入库${quantity}瓶，每瓶都有唯一标识。`);
+        }
+        
+        // 查看库存项详情
+        function viewStockItem(id) {
+            // 查找要查看的库存项
+            const item = stockData.find(item => item.id === id);
+            if (!item) return;
+            
+            // 创建详情模态框
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center';
+            modal.id = 'viewModal';
+            
+            let statusText = '';
+            switch (item.status) {
+                case 'normal':
+                    statusText = '正常';
+                    break;
+                case 'warning':
+                    statusText = '即将过期';
+                    break;
+                case 'expired':
+                    statusText = '已过期';
+                    break;
+                case 'low':
+                    statusText = '库存不足';
+                    break;
+            }
+            
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">标准物质详情</h2>
+                        <button onclick="document.getElementById('viewModal').remove()" class="text-gray-500 hover:text-gray-700">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="mb-4">
+                            <h3 class="text-lg font-semibold mb-2">基本信息</h3>
+                            <div class="space-y-2">
+                                <p><span class="font-medium">标准物质名称:</span> ${item.name}</p>
+                                <p><span class="font-medium">标准物质编号:</span> ${item.code}</p>
+                                <p><span class="font-medium">批次号:</span> ${item.batchNumber || 'N/A'}</p>
+                                <p><span class="font-medium">唯一性标识:</span> ${item.uniqueId || 'N/A'}</p>
+                                <p><span class="font-medium">生产厂家:</span> ${item.manufacturer || 'N/A'}</p>
+                                <p><span class="font-medium">浓度:</span> ${item.concentration || 'N/A'}</p>
+                                <p><span class="font-medium">不确定度:</span> ${item.uncertainty || 'N/A'}</p>
+                                <p><span class="font-medium">储存条件:</span> ${item.storageCondition || 'N/A'}</p>
+                                <p><span class="font-medium">数量:</span> ${item.quantity}</p>
+                                <p><span class="font-medium">有效期:</span> ${item.expiryDate}</p>
+                                <p><span class="font-medium">状态:</span> <span class="status-badge status-${item.status}">${statusText}</span></p>
+                                <p><span class="font-medium">创建时间:</span> ${new Date(item.createdAt).toLocaleString('zh-CN')}</p>
+                            </div>
+                        </div>
+                        
+                        <!-- 二维码区域 -->
+                        <div class="mb-4">
+                            <h3 class="text-lg font-semibold mb-2">二维码</h3>
+                            <div class="flex flex-col items-center">
+                                <canvas id="qrcode-${item.id}" class="mb-3"></canvas>
+                                <p class="text-sm text-gray-500">扫描二维码查看详情</p>
+                            </div>
+                        </div>
+                        
+                        ${item.images && item.images.length > 0 ? `
+                        <div class="mb-4">
+                            <h3 class="text-lg font-semibold mb-2">图片</h3>
+                            <div class="grid grid-cols-3 gap-2">
+                                ${item.images.map((img, index) => `
+                                    <div class="relative">
+                                        <div class="w-full h-24 bg-gray-100 rounded-md flex items-center justify-center">
+                                            <i class="fa fa-image text-gray-400 text-2xl"></i>
+                                            <span class="ml-2 text-sm">${img.name}</span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="flex justify-end space-x-3">
+                            <button onclick="outboundFromDetail(${item.id})" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-blue-600">出库</button>
+                            <button onclick="document.getElementById('viewModal').remove()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">关闭</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // 生成二维码
+            setTimeout(() => {
+                const qrCodeData = `标准物质详情
+名称: ${item.name}
+编号: ${item.code}
+批次号: ${item.batchNumber || 'N/A'}
+唯一性标识: ${item.uniqueId || 'N/A'}
+生产厂家: ${item.manufacturer || 'N/A'}
+浓度: ${item.concentration || 'N/A'}
+不确定度: ${item.uncertainty || 'N/A'}
+储存条件: ${item.storageCondition || 'N/A'}
+数量: ${item.quantity}
+有效期: ${item.expiryDate}
+状态: ${statusText}
+创建时间: ${new Date(item.createdAt).toLocaleString('zh-CN')}`;
+                
+                QRCode.toCanvas(document.getElementById(`qrcode-${item.id}`), qrCodeData, {
+                    width: 200,
+                    margin: 1,
+                    color: {
+                        dark: '#000000',
+                        light: '#ffffff'
+                    }
+                }, function (error) {
+                    if (error) console.error(error);
+                });
+            }, 100);
+        }
+        
+        // 从详情页面直接出库
+        function outboundFromDetail(itemId) {
+            // 关闭详情模态框
+            document.getElementById('viewModal').remove();
+            
+            // 打开出库模态框
+            showOutModal(itemId);
+        }
+        
+        // 编辑库存项
+        function editStockItem(id) {
+            // 查找要编辑的库存项
+            const item = stockData.find(item => item.id === id);
+            if (!item) return;
+            
+            // 填充表单数据
+            document.getElementById('name').value = item.name;
+            document.getElementById('code').value = item.code;
+            document.getElementById('batchNumber').value = item.batchNumber || '';
+            document.getElementById('manufacturer').value = item.manufacturer || '';
+            document.getElementById('concentration').value = item.concentration || '';
+            document.getElementById('uncertainty').value = item.uncertainty || '';
+            document.getElementById('storageCondition').value = item.storageCondition || '';
+            document.getElementById('quantity').value = item.quantity;
+            document.getElementById('expiryDate').value = item.expiryDate;
+            
+            // 设置唯一性标识方式
+            if (item.uniqueId) {
+                document.querySelector('input[name="uniqueIdType"][value="manual"]').checked = true;
+                document.getElementById('uniqueId').value = item.uniqueId;
+                document.getElementById('uniqueId').classList.remove('hidden');
+            } else {
+                document.querySelector('input[name="uniqueIdType"][value="auto"]').checked = true;
+                document.getElementById('uniqueId').classList.add('hidden');
+            }
+            
+            // 重置图片上传预览
+            document.getElementById('imagePreview').innerHTML = '';
+            document.getElementById('uploadPlaceholder').classList.remove('hidden');
+            
+            // 修改表单提交事件
+            const originalSubmitHandler = document.getElementById('addForm').onsubmit;
+            document.getElementById('addForm').onsubmit = function(e) {
+                e.preventDefault();
+                
+                // 更新库存项
+                item.name = document.getElementById('name').value;
+                item.code = document.getElementById('code').value;
+                item.batchNumber = document.getElementById('batchNumber').value;
+                const uniqueIdType = document.querySelector('input[name="uniqueIdType"]:checked').value;
+                item.uniqueId = uniqueIdType === 'manual' ? document.getElementById('uniqueId').value : `${item.batchNumber || 'BATCH'}-${Date.now().toString().slice(-4)}`;
+                item.manufacturer = document.getElementById('manufacturer').value;
+                item.concentration = document.getElementById('concentration').value;
+                item.uncertainty = document.getElementById('uncertainty').value;
+                item.storageCondition = document.getElementById('storageCondition').value;
+                item.quantity = parseInt(document.getElementById('quantity').value);
+                item.expiryDate = document.getElementById('expiryDate').value;
+                
+                // 获取上传的图片
+                const imageUpload = document.getElementById('imageUpload');
+                if (imageUpload.files.length > 0) {
+                    item.images = Array.from(imageUpload.files).map(file => ({
+                        name: file.name,
+                        size: file.size,
+                        type: file.type
+                    }));
+                }
+                
+                // 重新计算状态
+                let status = 'normal';
+                const now = new Date();  // 使用当前时间精确到毫秒
+                const expiry = new Date(item.expiryDate);
+                const diffTime = expiry - now;  // 时间差（毫秒）
+                
+                if (item.quantity === 0) {
+                    item.status = 'low';  // 库存为0时直接标记为库存不足
+                } else if (diffTime < 1000) {  // 小于1秒的为已过期
+                    item.status = 'expired';
+                } else if (diffTime >= 1000 && diffTime < 30 * 24 * 60 * 60 * 1000) {  // 大于等于1秒小于30天的为即将过期
+                    item.status = 'warning';
+                } else {
+                    item.status = 'normal';  // 大于等于30天的为正常
+                }
+                
+                // 保存库存数据
+                saveStockData();
+                
+                // 重新渲染库存列表
+                renderStockList();
+                
+                // 隐藏模态框
+                hideAddModal();
+                
+                // 恢复原始表单提交事件
+                document.getElementById('addForm').onsubmit = originalSubmitHandler;
+                
+                // 显示成功提示
+                alert('标准物质更新成功！');
+            };
+            
+            // 显示模态框
+            document.getElementById('addModal').classList.remove('hidden');
+        }
+        
+        // 删除库存项
+        function deleteStockItem(id) {
+            if (confirm('确定要删除这个标准物质吗？')) {
+                // 从库存数据中删除
+                stockData = stockData.filter(item => item.id !== id);
+                
+                // 保存库存数据
+                saveStockData();
+                
+                // 重新渲染库存列表
+                renderStockList();
+                
+                // 显示成功提示
+                alert('标准物质删除成功！');
+            }
+        }
+        
+        // 导航函数
+        function navigateTo(page) {
+            window.location.href = page;
+        }
+        
+        // 出库单瓶标准物质
+        function outboundStockItem(id) {
+            // 调用带图片上传功能的出库模态框，并自动选择当前物质
+            showOutModal(id);
+        }
+    </script>
+
+</body></html>

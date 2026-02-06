@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>标准物质管理助手 - 记录</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#64748b',
+                        success: '#22c55e',
+                        danger: '#ef4444',
+                        warning: '#f59e0b',
+                        info: '#0ea5e9',
+                        light: '#f8fafc',
+                        dark: '#1e293b'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .transition-all-300 {
+                transition: all 300ms ease-in-out;
+            }
+        }
+    </style>
+    <style>
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: #f1f5f9;
+        }
+        .header {
+            background-color: #3b82f6;
+            color: white;
+            padding: 1rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+        .content {
+            margin-top: 4.5rem;
+            padding: 1rem;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem;
+            color: #64748b;
+            transition: all 0.3s ease;
+        }
+        .nav-item.active {
+            color: #3b82f6;
+        }
+        .nav-item i {
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
+        }
+        .nav-item span {
+            font-size: 0.75rem;
+        }
+        .footer {
+            background-color: white;
+            border-top: 1px solid #e2e8f0;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+        .record-item {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 0;
+        }
+        .record-item:last-child {
+            border-bottom: none;
+        }
+        .record-type {
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .record-type-in {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        .record-type-out {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        .record-type-warning {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- 头部 -->
+    <div class="header flex items-center justify-between">
+        <div class="flex items-center">
+            <button onclick="navigateTo('dashboard.html')" class="mr-4">
+                <i class="fa fa-arrow-left text-xl"></i>
+            </button>
+            <h1 class="text-xl font-bold">记录</h1>
+        </div>
+    </div>
+
+    <!-- 内容区 -->
+    <div class="content pb-20">
+        <!-- 搜索栏 -->
+        <div class="card mb-4">
+            <div class="relative">
+                <input type="text" id="searchInput" placeholder="搜索记录..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                <i class="fa fa-search absolute left-3 top-3 text-gray-400"></i>
+            </div>
+        </div>
+
+        <!-- 记录列表 -->
+        <div id="recordList" class="card">
+            <!-- 记录项将通过JavaScript动态生成 -->
+        </div>
+    </div>
+
+    <!-- 图片浏览模态框 -->
+    <div id="imageViewerModal" class="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center hidden">
+        <div class="relative w-full max-w-4xl max-h-[90vh]">
+            <button onclick="closeImageViewer()" class="absolute top-4 right-4 bg-white bg-opacity-20 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-30">
+                <i class="fa fa-times"></i>
+            </button>
+            <img id="viewerImage" src="" class="w-full h-auto max-h-[80vh] object-contain" alt="图片预览">
+            <div class="absolute bottom-4 left-0 right-0 flex justify-center">
+                <p id="viewerImageName" class="text-white text-sm bg-black bg-opacity-50 px-3 py-1 rounded"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="footer">
+        <div class="flex justify-around">
+            <div class="nav-item" onclick="navigateTo('dashboard.html')">
+                <i class="fa fa-home"></i>
+                <span>首页</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('stock.html')">
+                <i class="fa fa-cubes"></i>
+                <span>库存</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('personnel.html')">
+                <i class="fa fa-users"></i>
+                <span>人员</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('settings.html')">
+                <i class="fa fa-cog"></i>
+                <span>设置</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 图片浏览功能
+        function openImageViewer(imageSrc, imageName) {
+            document.getElementById('viewerImage').src = imageSrc;
+            document.getElementById('viewerImageName').textContent = imageName;
+            document.getElementById('imageViewerModal').classList.remove('hidden');
+        }
+
+        function closeImageViewer() {
+            document.getElementById('imageViewerModal').classList.add('hidden');
+        }
+
+        // 检查登录状态
+        document.addEventListener('DOMContentLoaded', function() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            
+            if (!isLoggedIn) {
+                window.location.href = 'index.html';
+            }
+            
+            // 初始化记录数据
+            initRecordData();
+            
+            // 渲染记录列表
+            renderRecordList();
+            
+            // 搜索功能
+            document.getElementById('searchInput').addEventListener('input', function() {
+                renderRecordList();
+            });
+        });
+        
+        // 模拟记录数据
+        let recordData = [];
+        
+        // 初始化记录数据
+        function initRecordData() {
+            // 从localStorage获取记录数据，如果没有则使用空数组
+            const savedRecordData = localStorage.getItem('recordData');
+            if (savedRecordData) {
+                recordData = JSON.parse(savedRecordData);
+            } else {
+                recordData = [];
+            }
+        }
+        
+        // 保存记录数据到localStorage
+        function saveRecordData() {
+            localStorage.setItem('recordData', JSON.stringify(recordData));
+        }
+        
+        // 渲染记录列表
+        function renderRecordList() {
+            const recordListElement = document.getElementById('recordList');
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            
+            // 过滤记录数据
+            let filteredData = recordData;
+            
+            // 根据搜索输入过滤
+            if (searchInput) {
+                filteredData = filteredData.filter(item => 
+                    item.materialName.toLowerCase().includes(searchInput) || 
+                    item.operator.toLowerCase().includes(searchInput) ||
+                    item.note.toLowerCase().includes(searchInput)
+                );
+            }
+            
+            // 按日期排序，最新的在前
+            filteredData.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            // 渲染记录列表
+            if (filteredData.length === 0) {
+                recordListElement.innerHTML = '<p class="text-center text-gray-500 py-4">暂无记录</p>';
+                return;
+            }
+            
+            recordListElement.innerHTML = filteredData.map(item => {
+                let typeText = '';
+                let typeClass = '';
+                let iconClass = '';
+                
+                switch (item.type) {
+                    case 'in':
+                        typeText = '入库';
+                        typeClass = 'record-type-in';
+                        iconClass = 'fa-archive text-blue-500';
+                        break;
+                    case 'out':
+                        typeText = '出库';
+                        typeClass = 'record-type-out';
+                        iconClass = 'fa-sign-out text-green-500';
+                        break;
+                    case 'warning':
+                        typeText = '预警';
+                        typeClass = 'record-type-warning';
+                        iconClass = 'fa-exclamation-triangle text-yellow-500';
+                        break;
+                }
+                
+                // 生成图片预览HTML
+                let imagesHtml = '';
+                if (item.images && Array.isArray(item.images) && item.images.length > 0) {
+                    imagesHtml = `
+                        <div class="mt-3">
+                            <p class="text-sm font-medium mb-1">相关图片:</p>
+                            <div class="flex flex-wrap gap-2">
+                                ${item.images.map(image => {
+                                    if (image && typeof image === 'object') {
+                                        // 检查是否有base64数据
+                                        if (image.data) {
+                                            return `
+                                                <div class="relative cursor-pointer" onclick="openImageViewer('${image.data}', '${image.name || '未知图片'}')">
+                                                    <img src="${image.data}" class="w-20 h-20 object-cover rounded border border-gray-200" alt="${image.name || '未知图片'}">
+                                                    <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 rounded-b">
+                                                        ${image.name || '未知图片'}
+                                                    </div>
+                                                </div>
+                                            `;
+                                        } else {
+                                            // 如果没有base64数据，显示占位符
+                                            return `
+                                                <div class="bg-gray-50 p-2 rounded border border-gray-200 min-w-[100px] max-w-[150px]">
+                                                    <p class="text-xs text-gray-500 truncate">${image.name || '未知图片'}</p>
+                                                    <p class="text-xs text-gray-400">${image.size ? (image.size / 1024).toFixed(1) : '0'}KB</p>
+                                                </div>
+                                            `;
+                                        }
+                                    }
+                                    return '';
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                return `
+                    <div class="record-item">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-center">
+                                <div class="bg-gray-100 p-2 rounded-full mr-3">
+                                    <i class="fa ${iconClass}"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold">${item.materialName}</h3>
+                                    <p class="text-sm text-gray-500">操作人: ${item.operator} | 时间: ${item.date}</p>
+                                </div>
+                            </div>
+                            <span class="record-type ${typeClass}">${typeText}</span>
+                        </div>
+                        <div class="mt-2">
+                            <p class="text-sm">数量: ${item.quantity}</p>
+                            <p class="text-sm text-gray-500">备注: ${item.note}</p>
+                            ${imagesHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // 添加记录
+        function addRecord(type, materialName, quantity, operator, note) {
+            const newRecord = {
+                id: Date.now(),
+                type,
+                materialName,
+                quantity,
+                operator,
+                date: new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
+                note
+            };
+            
+            recordData.push(newRecord);
+            saveRecordData();
+            renderRecordList();
+        }
+        
+        // 导航函数
+        function navigateTo(page) {
+            window.location.href = page;
+        }
+    </script>
+</body>
+</html>
