@@ -4,13 +4,14 @@
   "webDir": "dist",
   "bundledWebRuntime": false,
   "plugins": {
-    "SplashScreen": {
-      "launchShowDuration": 3000,
-      "launchAutoHide": true,
-      "backgroundColor": "#3b82f6",
-      "androidSplashResourceName": "splash",
-      "androidScaleType": "CENTER_CROP"
-    }
+    // 注释掉或删除这一部分
+    // "SplashScreen": {
+    //   "launchShowDuration": 3000,
+    //   "launchAutoHide": true,
+    //   "backgroundColor": "#3b82f6",
+    //   "androidSplashResourceName": "splash",
+    //   "androidScaleType": "CENTER_CROP"
+    // }
   },
   "android": {
     "buildOptions": {
