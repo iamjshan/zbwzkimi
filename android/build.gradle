@@ -1,7 +1,9 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
-
 buildscript {
-    
+    ext {
+        // 添加这一行，定义项目使用的 Java 版本
+        javaVersion = JavaVersion.VERSION_21
+    }
     repositories {
         google()
         mavenCentral()
