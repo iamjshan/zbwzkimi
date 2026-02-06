@@ -1,6 +1,5 @@
 plugins {
     id 'com.android.application'
-    // 移除了 Google Services 插件
 }
 
 android {
@@ -9,7 +8,7 @@ android {
 
     defaultConfig {
         applicationId "com.materialmanager.app"
-        minSdk 22
+        minSdk 23  // 从 22 升级到 23
         targetSdk 35
         versionCode 1
         versionName "1.0.0"
