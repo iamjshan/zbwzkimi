@@ -1,16 +1,16 @@
 plugins {
     id 'com.android.application'
-    id 'com.google.gms.google-services'
+    // 移除了 Google Services 插件
 }
 
 android {
     namespace "com.materialmanager.app"
-    compileSdk 35  // 从 34 升级到 35
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.materialmanager.app"
         minSdk 22
-        targetSdk 35  // 从 34 升级到 35
+        targetSdk 35
         versionCode 1
         versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -23,7 +23,6 @@ android {
         }
     }
 
-    // 关键配置：指定使用 Java 21 编译
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_21
         targetCompatibility JavaVersion.VERSION_21
