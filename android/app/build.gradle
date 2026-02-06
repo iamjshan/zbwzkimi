@@ -29,10 +29,6 @@ android {
         targetCompatibility JavaVersion.VERSION_21
     }
 
-    kotlinOptions {
-        jvmTarget = "21"
-    }
-
     packagingOptions {
         jniLibs {
             excludes += ['META-INF/*']
