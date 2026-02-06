@@ -1,24 +1,22 @@
-{
-  "appId": "com.materialmanager.app",
-  "appName": "标准物质管理助手",
-  "webDir": "dist",
-  "bundledWebRuntime": false,
-  "plugins": {
-    // 注释掉或删除这一部分
-    // "SplashScreen": {
-    //   "launchShowDuration": 3000,
-    //   "launchAutoHide": true,
-    //   "backgroundColor": "#3b82f6",
-    //   "androidSplashResourceName": "splash",
-    //   "androidScaleType": "CENTER_CROP"
-    // }
-  },
-  "android": {
-    "buildOptions": {
-      "keystorePath": "",
-      "keystoreAlias": "",
-      "keystorePassword": "",
-      "keystoreKeyPassword": ""
-    }
-  }
-}
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
+    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:background">@null</item>
+    </style>
+
+    <!-- 直接继承已有的主题，避免复杂的依赖 -->
+    <style name="AppTheme.NoActionBarLaunch" parent="AppTheme.NoActionBar">
+        <item name="android:background">@drawable/splash</item>
+    </style>
+
+</resources>
